@@ -1,0 +1,20 @@
+import { DataSource } from 'typeorm';
+import config from './config';
+import Category from './entities/category';
+import Product from './entities/product';
+import ProductGroup from './entities/productGroup';
+import User from './entities/user';
+import WareHouse from './entities/warehouse';
+const dataSource = new DataSource({
+  type: 'postgres',
+  username: config.DB_USER,
+  password: config.DB_PASS,
+  host: config.DB_HOST,
+  database: config.DB_NAME,
+  logging: config.NODE_ENV === 'development',
+  synchronize: true,
+  port: config.DB_PORT,
+  entities: [User, Product, WareHouse, ProductGroup, Category]
+});
+
+export default dataSource;
