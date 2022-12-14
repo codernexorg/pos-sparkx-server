@@ -86,3 +86,9 @@ export const createCat: ControllerFn = async (req, res, next) => {
 
   res.status(201).json(category);
 };
+
+export const getProducts: ControllerFn = async (_req, res) => {
+  const product = await Product.find();
+
+  res.status(200).json(product);
+};
