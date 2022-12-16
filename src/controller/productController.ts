@@ -1,6 +1,6 @@
-import Category from '../entities/category';
 import Product from '../entities/product';
 import ProductGroup from '../entities/productGroup';
+import dataSource from '../typeorm.config';
 import { ControllerFn } from '../types';
 import ErrorHandler from '../utils/errorHandler';
 
@@ -29,7 +29,7 @@ export const createProductGroup: ControllerFn = async (req, res, next) => {
   return res.status(201).json(productGroup);
 };
 
-export const createProduct: ControllerFn = async (req, res, next) => {
+export const createSingleProduct: ControllerFn = async (req, res, next) => {
   const {
     itemCode,
     productGroup,
@@ -39,7 +39,8 @@ export const createProduct: ControllerFn = async (req, res, next) => {
     supplierName,
     transportationCost,
     productCode,
-    lotNumber
+    lotNumber,
+    totalItem
   } = req.body as Product;
 
   if (
@@ -51,44 +52,51 @@ export const createProduct: ControllerFn = async (req, res, next) => {
     !supplierName ||
     !transportationCost ||
     !productCode ||
-    !lotNumber
+    !lotNumber ||
+    !totalItem
   ) {
     return next(new ErrorHandler('Please Enter Required Information', 404));
   }
-
-  const product = Product.create(req.body);
-
-  await product.save();
-
-  return res.status(201).json(product);
-};
-
-export const createCat: ControllerFn = async (req, res, next) => {
-  const { categoryName } = req.body as Category;
-
-  if (!categoryName) {
-    return next(new ErrorHandler('Please Enter Required Information', 404));
-  }
-
-  const isExist = await Category.findOne({
-    where: { categoryName },
-    relations: {
-      user: true
+  const productArr: Product[] | null = [];
+  if (totalItem > 1) {
+    let itemMCode = itemCode;
+    for (let i = 0; i < totalItem; i++) {
+      productArr.push({ ...req.body, itemCode: itemMCode });
+      itemMCode = itemMCode + 1;
     }
+  }
+  // console.log(productArr);
+
+  productArr.forEach(async product => {
+    const productToSave = Product.create(product);
+
+    await productToSave.save();
   });
 
-  if (isExist) {
-    return next(new ErrorHandler('Category Already Exist', 404));
-  }
-  const category = Category.create(req.body);
-
-  await category.save();
-
-  res.status(201).json(category);
+  return res.json(productArr);
 };
 
-export const getProducts: ControllerFn = async (_req, res) => {
-  const product = await Product.find();
+export const getProducts: ControllerFn = async (req, res) => {
+  const queryLimit = req.params.limit || 100;
+  const currentLimit = Math.min(50, queryLimit);
 
-  res.status(200).json(product);
+  const qb = dataSource
+    .getRepository(Product)
+    .createQueryBuilder('product')
+    .orderBy('"itemCode"', 'ASC')
+    .take(currentLimit + 1);
+
+  if (req.query.cursor) {
+    console.log('Entering Cursor');
+    qb.where('"itemCode" >= :cursor', {
+      cursor: parseInt(req.query.cursor)
+    });
+  }
+
+  const product = await qb.getMany();
+
+  res.status(200).json({
+    product: product.slice(0, currentLimit),
+    hasMore: product.length === currentLimit + 1
+  });
 };

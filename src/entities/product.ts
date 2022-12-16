@@ -3,6 +3,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn
@@ -25,10 +26,10 @@ export default class Product extends BaseEntity {
   productGroup: string;
 
   @Column()
-  invoiceNumber: number;
+  invoiceNumber: string;
 
   @Column()
-  invoiceDate: Date;
+  invoiceDate: string;
 
   @Column()
   lotNumber: number;
@@ -46,12 +47,17 @@ export default class Product extends BaseEntity {
   transportationCost: number;
 
   @Column()
+  plannedShowroom: string;
+
+  @Column()
   unitCost: number;
 
-  @ManyToOne(() => WareHouse, wh => wh.products, { nullable: true })
+  @ManyToOne(() => WareHouse, wh => wh.products)
+  @JoinColumn()
   whId: WareHouse;
 
   @ManyToOne(() => User, user => user.products)
+  @JoinColumn()
   creator: User;
 
   @Column()

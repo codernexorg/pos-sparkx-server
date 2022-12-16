@@ -1,17 +1,15 @@
 import express from 'express';
+import { createCat } from '../controller/category';
 import {
-  createCat,
-  createProduct,
   createProductGroup,
+  createSingleProduct,
   getProducts
 } from '../controller/productController';
-import { commonAuth, isAuth } from '../middleware/isAuth';
 
 const productRoutes = express.Router();
-productRoutes.route('/group').post(isAuth, commonAuth, createProductGroup);
-productRoutes.route('/category').post(isAuth, commonAuth, createCat);
-productRoutes
-  .route('/')
-  .post(isAuth, commonAuth, createProduct)
-  .get(isAuth, commonAuth, getProducts);
+productRoutes.route('/group').post(createProductGroup).get();
+
+productRoutes.route('/category').post(createCat).get(createCat);
+
+productRoutes.route('/').post(createSingleProduct).get(getProducts);
 export default productRoutes;

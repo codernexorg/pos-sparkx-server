@@ -11,6 +11,8 @@ import {
 import { UserRole } from '../types';
 import Category from './category';
 import Product from './product';
+import Showroom from './showroom';
+import Supplier from './supplier';
 import WareHouse from './warehouse';
 
 @Entity()
@@ -36,8 +38,14 @@ export default class User extends BaseEntity {
   @OneToMany(() => Product, product => product.creator)
   products: Product[];
 
+  @OneToMany(() => Supplier, sup => sup.creator)
+  suppliers: Supplier[];
+
   @OneToMany(() => WareHouse, wh => wh.creator)
   warehouses: WareHouse[];
+
+  @OneToMany(() => Showroom, sr => sr.creator)
+  showrooms: Showroom[];
 
   @OneToMany(() => Category, cat => cat.user)
   @JoinColumn()

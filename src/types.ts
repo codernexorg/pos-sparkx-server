@@ -5,6 +5,8 @@ export type ControllerFn = (
   req: Request & {
     cookies?: any;
     user?: User | null;
+    query?: any;
+    params: any;
   },
   res: Response,
   next: NextFunction

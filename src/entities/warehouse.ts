@@ -17,9 +17,12 @@ export default class WareHouse extends BaseEntity {
   whId: number;
 
   @Column()
-  whName: string;
+  whCode: number;
 
   @Column()
+  whName: string;
+
+  @Column({ nullable: true })
   whLocation: string;
 
   @ManyToOne(() => User, user => user.id, { nullable: true })
