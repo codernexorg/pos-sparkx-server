@@ -1,5 +1,5 @@
 import express from 'express';
-import { createCat } from '../controller/category';
+import { createCat, getCat } from '../controller/category';
 import {
   createProductGroup,
   createSingleProduct,
@@ -9,7 +9,7 @@ import {
 const productRoutes = express.Router();
 productRoutes.route('/group').post(createProductGroup).get();
 
-productRoutes.route('/category').post(createCat).get(createCat);
+productRoutes.route('/category').post(createCat).get(getCat);
 
 productRoutes.route('/').post(createSingleProduct).get(getProducts);
 export default productRoutes;

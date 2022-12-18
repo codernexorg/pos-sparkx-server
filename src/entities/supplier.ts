@@ -17,22 +17,22 @@ export default class Supplier extends BaseEntity {
   @Column()
   supplierName: string;
 
-  @Column()
+  @Column({ nullable: true })
   supplierEmail: string;
 
   @Column()
   contactPersonName: string;
 
-  @Column()
+  @Column({ nullable: true })
   contactPersonNumber: string;
 
-  @Column()
+  @Column({ nullable: true })
   altContactNumber: string;
 
-  @Column()
+  @Column({ nullable: true })
   supplierAddress: string;
 
-  @Column()
+  @Column({ nullable: true })
   extraInfo: string;
 
   @ManyToOne(() => User, user => user.suppliers)

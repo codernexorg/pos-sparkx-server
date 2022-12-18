@@ -19,7 +19,6 @@ export const createSupplier: ControllerFn = async (req, res, next) => {
   const supplier = Supplier.create(req.body);
 
   await supplier.save();
-
   return res.status(200).json(supplier);
 };
 export const updateSupplier = async () => {};
