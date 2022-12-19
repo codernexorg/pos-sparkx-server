@@ -13,7 +13,7 @@ export default class ProductGroup extends BaseEntity {
   id: number;
 
   @Column()
-  productCode: number;
+  productCode: string;
 
   @Column()
   productName: string;

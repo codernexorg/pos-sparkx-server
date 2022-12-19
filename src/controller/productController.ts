@@ -11,7 +11,7 @@ export const createProductGroup: ControllerFn = async (req, res, next) => {
   if (!productCategory || !productCode || !productName) {
     return next(new ErrorHandler('Please Enter Required Information', 404));
   }
-  const isExist = await Product.findOne({
+  const isExist = await ProductGroup.findOne({
     where: {
       productCode
     }
@@ -21,7 +21,7 @@ export const createProductGroup: ControllerFn = async (req, res, next) => {
   }
   const productGroup = ProductGroup.create({
     ...req.body,
-    productCode: Number(productCode)
+    productCode: productCode
   });
 
   await productGroup.save();
@@ -99,4 +99,10 @@ export const getProducts: ControllerFn = async (req, res) => {
     product: product.slice(0, currentLimit),
     hasMore: product.length === currentLimit + 1
   });
+};
+
+export const getProductGroup: ControllerFn = async (_req, res) => {
+  const productGroup = await ProductGroup.find();
+
+  res.status(200).json(productGroup);
 };
