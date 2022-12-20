@@ -123,3 +123,22 @@ export const getProductGroup: ControllerFn = async (_req, res) => {
 
   res.status(200).json(productGroup);
 };
+
+export const createMultipleProducts: ControllerFn = async (req, res, _next) => {
+  const products = req.body as Product[];
+
+  products.forEach(async (product: Product) => {
+    const productCode = await Product.findOne({
+      where: { productGroup: product.productGroup }
+    });
+
+    const productToSave = Product.create({
+      ...product,
+      invoiceDate: new Date(product.invoiceDate),
+      productCode: productCode?.productCode
+    });
+    await productToSave.save();
+  });
+
+  return res.status(200).json(products[0]);
+};
