@@ -20,16 +20,16 @@ export default class Product extends BaseEntity {
   itemCode: number;
 
   @Column()
-  productCode: number;
-
-  @Column()
   productGroup: string;
+
+  @Column({ nullable: true })
+  productCode: string;
 
   @Column()
   invoiceNumber: string;
 
   @Column()
-  invoiceDate: string;
+  invoiceDate: Date;
 
   @Column()
   lotNumber: number;
@@ -45,12 +45,16 @@ export default class Product extends BaseEntity {
 
   @Column()
   transportationCost: number;
-
-  @Column()
-  plannedShowroom: string;
-
   @Column()
   unitCost: number;
+
+  @Column()
+  whName: string;
+
+  @Column()
+  showroomName: string;
+  @Column({ default: 'unsold' })
+  sellingStatus: string;
 
   @ManyToOne(() => WareHouse, wh => wh.products)
   @JoinColumn()

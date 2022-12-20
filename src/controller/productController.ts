@@ -38,7 +38,6 @@ export const createSingleProduct: ControllerFn = async (req, res, next) => {
     sellPrice,
     supplierName,
     transportationCost,
-    productCode,
     lotNumber,
     totalItem
   } = req.body as Product;
@@ -51,29 +50,47 @@ export const createSingleProduct: ControllerFn = async (req, res, next) => {
     !sellPrice ||
     !supplierName ||
     !transportationCost ||
-    !productCode ||
     !lotNumber ||
     !totalItem
   ) {
     return next(new ErrorHandler('Please Enter Required Information', 404));
   }
   const productArr: Product[] | null = [];
+  const productCode = await ProductGroup.findOne({
+    where: {
+      productName: productGroup
+    }
+  });
   if (totalItem > 1) {
     let itemMCode = itemCode;
     for (let i = 0; i < totalItem; i++) {
-      productArr.push({ ...req.body, itemCode: itemMCode });
       itemMCode = itemMCode + 1;
+      productArr.push({
+        ...req.body,
+        itemCode: itemMCode,
+        productCode: productCode?.productCode
+      });
     }
-  }
-  // console.log(productArr);
 
-  productArr.forEach(async product => {
-    const productToSave = Product.create(product);
+    productArr.forEach(async product => {
+      const productToSave = Product.create({
+        ...product,
+        invoiceDate: new Date(product.invoiceDate)
+      });
 
+      await productToSave.save();
+    });
+    return res.json(productArr);
+  } else if (totalItem === 1) {
+    const productToSave = Product.create({
+      ...req.body,
+      invoiceDate: new Date(req.body.invoiceDate),
+      productCode: productCode?.productCode
+    });
     await productToSave.save();
-  });
-
-  return res.json(productArr);
+    return res.json(productToSave);
+  }
+  return; // console.log(productArr);
 };
 
 export const getProducts: ControllerFn = async (req, res) => {

@@ -12,5 +12,6 @@ productRoutes.route('/group').post(createProductGroup).get(getProductGroup);
 
 productRoutes.route('/category').post(createCat).get(getCat);
 
-productRoutes.route('/').post(createSingleProduct).get(getProducts);
+productRoutes.route('/single').post(createSingleProduct);
+productRoutes.get('/', getProducts);
 export default productRoutes;
