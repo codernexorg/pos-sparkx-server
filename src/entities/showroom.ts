@@ -17,7 +17,7 @@ export default class Showroom extends BaseEntity {
   showroomName: string;
 
   @Column()
-  showroomCode: number;
+  showroomCode: string;
 
   @Column()
   showroomAddress: string;

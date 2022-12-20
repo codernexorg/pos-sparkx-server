@@ -17,7 +17,7 @@ export default class WareHouse extends BaseEntity {
   whId: number;
 
   @Column()
-  whCode: number;
+  whCode: string;
 
   @Column()
   whName: string;
