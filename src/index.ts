@@ -1,6 +1,6 @@
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
-import express, { Application } from 'express';
+import express, { Application, Request, Response } from 'express';
 import config from './config';
 import errorMiddleware from './middleware/err';
 import { commonAuth, isAuth } from './middleware/isAuth';
@@ -24,6 +24,19 @@ const server = async (app: Application) => {
   app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 
   await dataSource.initialize();
+
+  app.get('/', async (req: Request, res: Response) => {
+    const serverInfo = {
+      protocol: req.protocol,
+      host: req.hostname
+    };
+
+    const userInfo = {
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
+    };
+    res.status(200).json({ serverInfo, userInfo });
+  });
 
   app.use('/api/v1/user', userRouter);
   app.use('/api/v1/auth', authRoute);

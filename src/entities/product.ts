@@ -53,6 +53,7 @@ export default class Product extends BaseEntity {
 
   @Column()
   showroomName: string;
+
   @Column({ default: 'unsold' })
   sellingStatus: string;
 

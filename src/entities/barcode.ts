@@ -8,6 +8,6 @@ export default class Barcode extends BaseEntity {
   @Column({ default: 2 })
   width: number;
 
-  @Column({ default: 1 })
+  @Column({ default: 100 })
   height: number;
 }
