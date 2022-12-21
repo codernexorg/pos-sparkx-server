@@ -1,5 +1,6 @@
 import { DataSource } from 'typeorm';
 import config from './config';
+import Barcode from './entities/barcode';
 import Category from './entities/category';
 import Product from './entities/product';
 import ProductGroup from './entities/productGroup';
@@ -23,7 +24,8 @@ const dataSource = new DataSource({
     ProductGroup,
     Category,
     Showroom,
-    Supplier
+    Supplier,
+    Barcode
   ]
 });
 
