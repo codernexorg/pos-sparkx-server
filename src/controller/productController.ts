@@ -94,7 +94,7 @@ export const createSingleProduct: ControllerFn = async (req, res, next) => {
 };
 
 export const getProducts: ControllerFn = async (req, res) => {
-  const queryLimit = req.params.limit || 100;
+  const queryLimit = req.query.limit || 100;
   const currentLimit = Math.min(50, queryLimit);
 
   const qb = dataSource

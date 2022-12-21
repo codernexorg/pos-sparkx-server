@@ -1,6 +1,6 @@
 import User from '../entities/user';
 import verifyToken from '../helper/verifyToken';
-import { ControllerFn, UserRole } from '../types';
+import { ControllerFn, UserAccessLevel, UserRole } from '../types';
 import ErrorHandler from '../utils/errorHandler';
 
 export const isAuth: ControllerFn = async (req, _res, next) => {
@@ -39,9 +39,7 @@ export const isSuperAdmin: ControllerFn = async (req, __res, next) => {
 export const commonAuth: ControllerFn = async (req, _res, next) => {
   const role = req.user?.role;
 
-  if (
-    role?.includes(UserRole.MA || UserRole.SA || UserRole.SM || UserRole.SO)
-  ) {
+  if (!UserAccessLevel.includes(role as UserRole)) {
     next();
   } else {
     return next(

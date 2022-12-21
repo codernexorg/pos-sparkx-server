@@ -17,6 +17,7 @@ export type CreateUserInput = {
   email: string;
   password: string;
   username: string;
+  role: string;
 };
 
 export type LoginInput = {
@@ -30,3 +31,10 @@ export enum UserRole {
   SM = 'ShowroomManager',
   SO = 'SalesOperator'
 }
+
+export const UserAccessLevel = [
+  'MasterAdmin',
+  'SuperAdmin',
+  'ShowroomManager',
+  'SalesOperator'
+];

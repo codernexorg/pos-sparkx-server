@@ -2,14 +2,33 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import sanitizedConfig from '../config';
 import User from '../entities/user';
-import { ControllerFn, CreateUserInput, LoginInput } from '../types';
+import {
+  ControllerFn,
+  CreateUserInput,
+  LoginInput,
+  UserAccessLevel,
+  UserRole
+} from '../types';
 import ErrorHandler from '../utils/errorHandler';
 import { sendToken } from '../utils/sendToken';
 
 export const createUser: ControllerFn = async (req, res, next) => {
-  const { email, username, password, name } = req.body as CreateUserInput;
-  if (!email || !password || !username || !name) {
+  const { email, username, password, name, role } = req.body as CreateUserInput;
+  if (!email || !password || !username || !name || !role) {
     return next(new ErrorHandler('Please provide required information', 404));
+  }
+
+  if (!UserAccessLevel.includes(role)) {
+    return next(
+      new ErrorHandler(
+        `Please provide valid role ${UserRole.MA}||${UserRole.SA}||${UserRole.SM}||${UserRole.MA}`,
+        403
+      )
+    );
+  }
+
+  if (req.query.secretpass !== 'sparkxpos') {
+    return next(new ErrorHandler('No Secret Key Found', 403));
   }
 
   const userExistWithEmail = await User.findOne({
