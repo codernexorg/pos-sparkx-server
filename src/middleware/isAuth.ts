@@ -4,7 +4,8 @@ import { ControllerFn, UserAccessLevel, UserRole } from '../types';
 import ErrorHandler from '../utils/errorHandler';
 
 export const isAuth: ControllerFn = async (req, _res, next) => {
-  const { token } = req.cookies as { token: string };
+  const token = req.cookies.token as string | undefined;
+  // req.headers.authorization?.split(' ')[1];
   if (!token) {
     return next(new ErrorHandler('Please Login', 401));
   }
@@ -37,9 +38,8 @@ export const isSuperAdmin: ControllerFn = async (req, __res, next) => {
 };
 
 export const commonAuth: ControllerFn = async (req, _res, next) => {
-  const role = req.user?.role;
-
-  if (!UserAccessLevel.includes(role as UserRole)) {
+  const role = req.user?.role as string;
+  if (UserAccessLevel.includes(role)) {
     next();
   } else {
     return next(

@@ -1,4 +1,5 @@
 import { NextFunction, Response } from 'express';
+import sanitizedConfig from '../config';
 import User from '../entities/user';
 import ErrorHandler from './errorHandler';
 
@@ -21,7 +22,8 @@ export function sendToken(
     .cookie('token', token, {
       maxAge: 1000 * 60 * 60 * 24 * 365,
       httpOnly: true,
-      sameSite: 'lax'
+      sameSite: 'none',
+      secure: sanitizedConfig.NODE_ENV === 'production'
     })
     .status(200)
     .json({ token, user });

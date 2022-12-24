@@ -14,7 +14,7 @@ const dataSource = new DataSource({
   password: config.DB_PASS,
   host: config.DB_HOST,
   database: config.DB_NAME,
-  logging: config.NODE_ENV === 'production',
+  logging: config.NODE_ENV === 'development',
   synchronize: true,
   port: config.DB_PORT,
   entities: [
