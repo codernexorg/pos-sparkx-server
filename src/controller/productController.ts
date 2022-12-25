@@ -68,7 +68,14 @@ export const createSingleProduct: ControllerFn = async (req, res, next) => {
       productArr.push({
         ...req.body,
         itemCode: itemMCode,
-        productCode: productCode?.productCode
+        productCode: productCode?.productCode,
+        grossProfit: (sellPrice - (transportationCost + unitCost)).toString(),
+        grossMargin: (
+          sellPrice -
+          (transportationCost + unitCost) -
+          (transportationCost + unitCost) / sellPrice -
+          (transportationCost + unitCost)
+        ).toString()
       });
     }
 
@@ -85,7 +92,14 @@ export const createSingleProduct: ControllerFn = async (req, res, next) => {
     const productToSave = Product.create({
       ...req.body,
       invoiceDate: new Date(req.body.invoiceDate),
-      productCode: productCode?.productCode
+      productCode: productCode?.productCode,
+      grossProfit: (sellPrice - (transportationCost + unitCost)).toString(),
+      grossMargin: (
+        sellPrice -
+        (transportationCost + unitCost) -
+        (transportationCost + unitCost) / sellPrice -
+        (transportationCost + unitCost)
+      ).toString()
     });
     await productToSave.save();
     return res.json(productToSave);
@@ -124,20 +138,42 @@ export const getProductGroup: ControllerFn = async (_req, res) => {
   res.status(200).json(productGroup);
 };
 
-export const createMultipleProducts: ControllerFn = async (req, res, _next) => {
+export const createMultipleProducts: ControllerFn = async (req, res, next) => {
   const products = req.body as Product[];
 
-  products.forEach(async (product: Product) => {
-    const productCode = await Product.findOne({
-      where: { productGroup: product.productGroup }
-    });
+  if (products.length === 0) {
+    return next(new ErrorHandler('Please Enter Required Information', 404));
+  } else if (
+    !products[0].invoiceDate ||
+    !products[0].invoiceNumber ||
+    !products[0].sellPrice ||
+    !products[0].itemCode
+  ) {
+    return next(new ErrorHandler('Please Enter Required Information', 404));
+  }
 
-    const productToSave = Product.create({
-      ...product,
-      invoiceDate: new Date(product.invoiceDate),
-      productCode: productCode?.productCode
+  products.forEach(async (product: Product) => {
+    ProductGroup.findOne({
+      where: { productName: product['productGroup'] }
+    }).then(async value => {
+      const productToSave = Product.create({
+        ...product,
+        invoiceDate: new Date(product.invoiceDate),
+        productCode: value?.productCode,
+        grossProfit: (
+          product.sellPrice -
+          (product.transportationCost + product.unitCost)
+        ).toString(),
+        grossMargin: (
+          product.sellPrice -
+          (product.transportationCost + product.unitCost) -
+          (product.transportationCost + product.unitCost) / product.sellPrice -
+          (product.transportationCost + product.unitCost)
+        ).toString(),
+        totalItem: products.length
+      });
+      await productToSave.save();
     });
-    await productToSave.save();
   });
 
   return res.status(200).json(products[0]);

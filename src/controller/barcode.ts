@@ -35,7 +35,12 @@ export const generateBarcode: ControllerFn = async (req, res, next) => {
     return next(new ErrorHandler('Invalid lot number', 404));
   }
 
-  const products = await Product.find({ where: { lotNumber } });
+  const products = await Product.find({
+    where: { lotNumber },
+    order: {
+      itemCode: 'ASC'
+    }
+  });
 
   return res.status(200).json(products);
 };

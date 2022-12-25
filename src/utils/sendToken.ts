@@ -22,7 +22,7 @@ export function sendToken(
     .cookie('token', token, {
       maxAge: 1000 * 60 * 60 * 24 * 365,
       httpOnly: true,
-      sameSite: 'none',
+      sameSite: 'lax',
       secure: sanitizedConfig.NODE_ENV === 'production'
     })
     .status(200)

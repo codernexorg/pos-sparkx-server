@@ -54,6 +54,12 @@ export default class Product extends BaseEntity {
   @Column()
   showroomName: string;
 
+  @Column({ nullable: true })
+  grossProfit: string;
+
+  @Column({ nullable: true })
+  grossMargin: string;
+
   @Column({ default: 'unsold' })
   sellingStatus: string;
 
