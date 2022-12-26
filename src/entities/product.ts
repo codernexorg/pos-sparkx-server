@@ -48,6 +48,9 @@ export default class Product extends BaseEntity {
   @Column()
   unitCost: number;
 
+  @Column({ nullable: true })
+  unitTotalCost: number;
+
   @Column()
   whName: string;
 
@@ -62,6 +65,9 @@ export default class Product extends BaseEntity {
 
   @Column({ default: 'unsold' })
   sellingStatus: string;
+
+  @Column({ default: 0 })
+  returnStatus: number;
 
   @ManyToOne(() => WareHouse, wh => wh.products)
   @JoinColumn()
