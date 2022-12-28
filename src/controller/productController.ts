@@ -56,18 +56,19 @@ export const createSingleProduct: ControllerFn = async (req, res, next) => {
     return next(new ErrorHandler('Please Enter Required Information', 404));
   }
   const productArr: Product[] | null = [];
+
   const productCode = await ProductGroup.findOne({
     where: {
       productName: productGroup
     }
   });
+
   if (totalItem > 1) {
-    let itemMCode = itemCode;
+    let itemMCode = parseInt(itemCode);
     for (let i = 0; i < totalItem; i++) {
-      itemMCode = itemMCode + 1;
       productArr.push({
         ...req.body,
-        itemCode: itemMCode,
+        itemCode: itemMCode.toString().padStart(10, '0'),
         productCode: productCode?.productCode,
         grossProfit: (sellPrice - (transportationCost + unitCost)).toString(),
         grossMargin: (
@@ -75,8 +76,10 @@ export const createSingleProduct: ControllerFn = async (req, res, next) => {
           (transportationCost + unitCost) -
           (transportationCost + unitCost) / sellPrice -
           (transportationCost + unitCost)
-        ).toString()
+        ).toString(),
+        unitTotalCost: unitCost + transportationCost
       });
+      itemMCode = itemMCode + 1;
     }
 
     productArr.forEach(async product => {
@@ -93,6 +96,7 @@ export const createSingleProduct: ControllerFn = async (req, res, next) => {
       ...req.body,
       invoiceDate: new Date(req.body.invoiceDate),
       productCode: productCode?.productCode,
+      unitTotalCost: transportationCost + unitCost,
       grossProfit: (sellPrice - (transportationCost + unitCost)).toString(),
       grossMargin: (
         sellPrice -
@@ -108,14 +112,11 @@ export const createSingleProduct: ControllerFn = async (req, res, next) => {
 };
 
 export const getProducts: ControllerFn = async (req, res) => {
-  const queryLimit = req.query.limit || 100;
-  const currentLimit = Math.min(50, queryLimit);
-
   const qb = dataSource
     .getRepository(Product)
     .createQueryBuilder('product')
     .orderBy('"itemCode"', 'ASC')
-    .take(currentLimit + 1);
+    .take();
 
   if (req.query.cursor) {
     console.log('Entering Cursor');
@@ -127,8 +128,8 @@ export const getProducts: ControllerFn = async (req, res) => {
   const product = await qb.getMany();
 
   res.status(200).json({
-    product: product.slice(0, currentLimit),
-    hasMore: product.length === currentLimit + 1
+    product: product,
+    hasMore: false
   });
 };
 
@@ -170,11 +171,12 @@ export const createMultipleProducts: ControllerFn = async (req, res, next) => {
           (product.transportationCost + product.unitCost) / product.sellPrice -
           (product.transportationCost + product.unitCost)
         ).toString(),
-        totalItem: products.length
+        totalItem: products.length,
+        unitCost: product.unitCost + product.transportationCost
       });
       await productToSave.save();
     });
   });
 
-  return res.status(200).json(products[0]);
+  return res.status(200).json(products);
 };
