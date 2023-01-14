@@ -1,3 +1,6 @@
+import { NextFunction, Request, Response } from 'express';
+import moment from 'moment';
+import xlsx from 'xlsx';
 import Product from '../entities/product';
 import ProductGroup from '../entities/productGroup';
 import dataSource from '../typeorm.config';
@@ -94,7 +97,7 @@ export const createSingleProduct: ControllerFn = async (req, res, next) => {
   } else if (totalItem === 1) {
     const productToSave = Product.create({
       ...req.body,
-      invoiceDate: new Date(req.body.invoiceDate),
+      invoiceDate: moment(req.body.invoiceDate).toDate(),
       productCode: productCode?.productCode,
       unitTotalCost: transportationCost + unitCost,
       grossProfit: (sellPrice - (transportationCost + unitCost)).toString(),
@@ -159,7 +162,7 @@ export const createMultipleProducts: ControllerFn = async (req, res, next) => {
     }).then(async value => {
       const productToSave = Product.create({
         ...product,
-        invoiceDate: new Date(product.invoiceDate),
+        invoiceDate: moment(req.body.invoiceDate).toDate(),
         productCode: value?.productCode,
         grossProfit: (
           product.sellPrice -
@@ -179,4 +182,61 @@ export const createMultipleProducts: ControllerFn = async (req, res, next) => {
   });
 
   return res.status(200).json(products);
+};
+
+export const importProduct = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const file = req.file;
+
+  if (!file) {
+    return next(new ErrorHandler('No File Found', 400));
+  }
+  const workbook = xlsx.read(file?.buffer, { type: 'buffer' });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
+  const data: Product[] = xlsx.utils.sheet_to_json(sheet);
+
+  if (data.length === 0) {
+    return next(new ErrorHandler('No Data Found', 400));
+  }
+  if (
+    !data[0].sellPrice ||
+    !data[0].unitCost ||
+    !data[0].itemCode ||
+    !data[0].productGroup ||
+    !data[0].whName ||
+    !data[0].showroomName ||
+    !data[0].lotNumber
+  ) {
+    return next(new ErrorHandler('Required Information Missing', 400));
+  }
+  data.every(async product => {
+    const productToSave = Product.create({
+      ...product,
+      invoiceDate: moment(product.invoiceDate).toDate(),
+      itemCode:
+        typeof product.itemCode === 'string'
+          ? parseInt(product.itemCode).toString().padStart(10, '0')
+          : parseInt(product.itemCode).toString().padStart(10, '0'),
+      grossProfit: (product.sellPrice - product.unitCost).toString(),
+      grossMargin: (
+        product.sellPrice -
+        product.unitCost -
+        product.unitCost / product.sellPrice -
+        +product.unitCost
+      ).toString(),
+      unitTotalCost: product.transportationCost
+        ? product.unitCost + product.transportationCost
+        : product.unitCost,
+
+      deliveryDate: moment(product.deliveryDate).toDate()
+    });
+
+    await productToSave.save();
+  });
+
+  res.status(200).json({ message: 'Data imported successfully', data: data });
 };

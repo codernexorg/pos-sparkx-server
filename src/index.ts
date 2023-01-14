@@ -13,10 +13,22 @@ import userRouter from './routes/user';
 import warehouseRoutes from './routes/warehouse';
 import dataSource from './typeorm.config';
 const server = async (app: Application) => {
+  const whiteList = [
+    'http://localhost:3002',
+    'http://localhost:3000',
+    'http://127.0.0.1:5500'
+  ];
+
   app.use(
     cors({
-      credentials: true,
-      origin: 'http://localhost:3000'
+      origin: (origin, callback) => {
+        if (origin && whiteList.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(null, false);
+        }
+      },
+      credentials: true
     })
   );
   app.use(cookieParser());

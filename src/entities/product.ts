@@ -25,30 +25,30 @@ export default class Product extends BaseEntity {
   @Column({ nullable: true })
   productCode: string;
 
-  @Column()
+  @Column({ nullable: true })
   invoiceNumber: string;
 
-  @Column()
+  @Column({ nullable: true })
   invoiceDate: Date;
 
   @Column()
-  lotNumber: number;
-
-  @Column()
-  invoiceTotalPrice: number;
-
-  @Column()
-  supplierName: string;
-
-  @Column()
-  totalItem: number;
-
-  @Column()
-  transportationCost: number;
-  @Column()
-  unitCost: number;
+  lotNumber: string;
 
   @Column({ nullable: true })
+  invoiceTotalPrice: number;
+
+  @Column({ nullable: true })
+  supplierName: string;
+
+  @Column({ nullable: true })
+  totalItem: number;
+
+  @Column({ nullable: true })
+  transportationCost: number;
+  @Column({ type: 'float' })
+  unitCost: number;
+
+  @Column({ nullable: true, type: 'float' })
   unitTotalCost: number;
 
   @Column()
@@ -69,6 +69,18 @@ export default class Product extends BaseEntity {
   @Column({ default: 0 })
   returnStatus: number;
 
+  @Column({ nullable: true })
+  deliveryDate: Date;
+
+  @Column({ nullable: true })
+  challanNumber: string;
+
+  @Column({ nullable: true })
+  size: string;
+
+  @Column({ nullable: true })
+  purchaseName: string;
+
   @ManyToOne(() => WareHouse, wh => wh.products)
   @JoinColumn()
   whId: WareHouse;
@@ -77,7 +89,7 @@ export default class Product extends BaseEntity {
   @JoinColumn()
   creator: User;
 
-  @Column()
+  @Column({ type: 'float' })
   sellPrice: number;
 
   @CreateDateColumn()
