@@ -9,6 +9,7 @@ import {
   UpdateDateColumn
 } from 'typeorm';
 import { UserRole } from '../types';
+import Brand from './brand';
 import Category from './category';
 import Product from './product';
 import Showroom from './showroom';
@@ -50,6 +51,9 @@ export default class User extends BaseEntity {
   @OneToMany(() => Category, cat => cat.user)
   @JoinColumn()
   categories: Category[];
+
+  @OneToMany(() => Brand, brand => brand.creator)
+  brands: Brand[];
 
   @CreateDateColumn()
   createdAt: Date;

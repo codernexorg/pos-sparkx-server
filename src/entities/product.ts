@@ -81,6 +81,9 @@ export default class Product extends BaseEntity {
   @Column({ nullable: true })
   purchaseName: string;
 
+  @Column({ nullable: true })
+  brand: string;
+
   @ManyToOne(() => WareHouse, wh => wh.products)
   @JoinColumn()
   whId: WareHouse;
