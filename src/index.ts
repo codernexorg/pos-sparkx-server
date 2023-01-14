@@ -6,6 +6,7 @@ import errorMiddleware from './middleware/err';
 import { commonAuth, isAuth } from './middleware/isAuth';
 import authRoute from './routes/auth';
 import barcodeRoutes from './routes/barcode';
+import brandRoutes from './routes/brand';
 import productRoutes from './routes/product';
 import showroomRoutes from './routes/showroom';
 import supplierRoutes from './routes/supplier';
@@ -62,6 +63,8 @@ const server = async (app: Application) => {
   app.use('/api/v1/showroom', isAuth, commonAuth, showroomRoutes);
 
   app.use('/api/v1/barcode', isAuth, commonAuth, barcodeRoutes);
+
+  app.use('/api/v1/brands', isAuth, commonAuth, brandRoutes);
 
   app.use(errorMiddleware);
   app.listen(config.PORT, () => {
