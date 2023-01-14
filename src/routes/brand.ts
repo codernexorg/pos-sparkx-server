@@ -5,6 +5,6 @@ const brandRoutes = express.Router();
 
 brandRoutes.route('/').post(createBrand).get(getBrands);
 
-brandRoutes.route('/:id').patch(updateBrand);
+brandRoutes.route('/:id').patch(updateBrand).delete();
 
 export default brandRoutes;

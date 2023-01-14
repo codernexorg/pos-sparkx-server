@@ -44,3 +44,15 @@ export const updateBrand: ControllerFn = async (req, res, next) => {
 
   res.status(200).json(brand);
 };
+
+export const deleteBrand: ControllerFn = async (req, res, next) => {
+  const { id } = req.params;
+
+  try {
+    await Brand.delete({ id });
+
+    res.status(200).json({ message: 'Brand deleted successfully' });
+  } catch (error) {
+    res.status(200).json({ message: 'Brand Not Deleted', success: false });
+  }
+};
