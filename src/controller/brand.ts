@@ -21,3 +21,26 @@ export const createBrand: ControllerFn = async (req, res, next) => {
 
   res.status(201).json(brand);
 };
+
+export const updateBrand: ControllerFn = async (req, res, next) => {
+  const { id } = req.params;
+
+  const brand = await Brand.findOne({
+    where: { id }
+  });
+
+  if (!brand) {
+    return next(new ErrorHandler('Brand not found', 404));
+  }
+
+  const { name } = req.body as Brand;
+
+  await Brand.update(
+    {
+      id
+    },
+    { name }
+  );
+
+  res.status(200).json(brand);
+};
