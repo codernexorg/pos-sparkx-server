@@ -48,6 +48,10 @@ export const updateBrand: ControllerFn = async (req, res, next) => {
 export const deleteBrand: ControllerFn = async (req, res, next) => {
   const { id } = req.params;
 
+  if (!id) {
+    return next(new ErrorHandler('Brand not found', 404));
+  }
+
   try {
     await Brand.delete({ id });
 
