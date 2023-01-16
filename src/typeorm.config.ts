@@ -1,5 +1,30 @@
-import { DataSource } from 'typeorm';
+import {DataSource} from 'typeorm';
 import config from './config';
+<<<<<<< HEAD
+
+import {Barcode, User, Product, WareHouse, ProductGroup, Category, Showroom, Supplier, Invoice} from "./entities";
+
+const dataSource = new DataSource({
+    type: 'postgres',
+    username: config.DB_USER,
+    password: config.DB_PASS,
+    host: config.DB_HOST,
+    database: config.DB_NAME,
+    logging: config.NODE_ENV === 'development',
+    synchronize: true,
+    port: config.DB_PORT,
+    entities: [
+        User,
+        Product,
+        WareHouse,
+        ProductGroup,
+        Category,
+        Showroom,
+        Supplier,
+        Barcode,
+        Invoice
+    ]
+=======
 import Barcode from './entities/barcode';
 import Brand from './entities/brand';
 import Category from './entities/category';
@@ -29,6 +54,8 @@ const dataSource = new DataSource({
     Barcode,
     Brand
   ]
+>>>>>>> 2e6338393112e2cf8d7c6b220ff643996a1bbef9
 });
 
+// @ts-ignore
 export default dataSource;
