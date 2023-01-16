@@ -3,7 +3,7 @@ import {
     Column,
     CreateDateColumn,
     Entity,
-    JoinColumn,
+    JoinColumn, ManyToMany,
     ManyToOne,
     PrimaryGeneratedColumn,
     UpdateDateColumn
@@ -89,7 +89,7 @@ export default class Product extends BaseEntity {
     @JoinColumn()
     whId: WareHouse;
 
-    @ManyToOne(() => Invoice, invoice => invoice.products)
+    @ManyToMany(() => Invoice, invoice => invoice.products)
     invoice: Invoice
 
     @ManyToOne(() => User, user => user.products)

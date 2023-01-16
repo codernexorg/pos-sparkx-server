@@ -4,7 +4,7 @@ import {
     PrimaryGeneratedColumn,
     Column,
     CreateDateColumn,
-    UpdateDateColumn, OneToMany
+    UpdateDateColumn, ManyToMany
 } from "typeorm";
 import Product from "./product";
 
@@ -26,7 +26,7 @@ export default class Invoice extends BaseEntity {
     @Column({nullable: true, default: "Spark X Fashion Wear Limited"})
     businessName: string
 
-    @OneToMany(() => Product, product => product.invoice)
+    @ManyToMany(() => Product, product => product.invoice)
     products: Product[]
 
     @Column()
