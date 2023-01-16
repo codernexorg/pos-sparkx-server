@@ -7,8 +7,8 @@ import WareHouse from "./warehouse";
 import Supplier from "./supplier";
 import ProductGroup from "./productGroup";
 import Category from "./category";
-
+import Brand from './brand'
 
 export {
-    Barcode, Invoice, Product, User, Showroom, Supplier, WareHouse, ProductGroup, Category
+    Barcode, Invoice, Product, User, Showroom, Supplier, WareHouse, ProductGroup, Category, Brand
 }
