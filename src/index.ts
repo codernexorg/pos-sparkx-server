@@ -6,12 +6,14 @@ import errorMiddleware from './middleware/err';
 import {commonAuth, isAuth} from './middleware/isAuth';
 import authRoute from './routes/auth';
 import barcodeRoutes from './routes/barcode';
+import brandRoutes from './routes/brand';
 import productRoutes from './routes/product';
 import showroomRoutes from './routes/showroom';
 import supplierRoutes from './routes/supplier';
 import userRouter from './routes/user';
 import warehouseRoutes from './routes/warehouse';
 import dataSource from './typeorm.config';
+import invoiceRoutes from "./routes/invoice";
 
 const server = async (app: Application) => {
   const whiteList = [
@@ -64,6 +66,9 @@ const server = async (app: Application) => {
 
   app.use('/api/v1/barcode', isAuth, commonAuth, barcodeRoutes);
 
+  app.use('/api/v1/brands', isAuth, commonAuth, brandRoutes);
+
+  app.use('/api/v1/invoice', isAuth, commonAuth, invoiceRoutes)
 
   app.use(errorMiddleware);
   app.listen(config.PORT, () => {
