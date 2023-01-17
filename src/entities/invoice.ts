@@ -2,6 +2,7 @@ import {
     BaseEntity,
     Column,
     CreateDateColumn,
+    DeleteDateColumn,
     Entity,
     JoinTable,
     ManyToMany,
@@ -18,7 +19,7 @@ export default class Invoice extends BaseEntity {
     id: number;
 
     @Column({
-        default: "#0001", nullable: true
+        default: "000001", nullable: true
     })
     invoiceNo: string
 
@@ -42,5 +43,8 @@ export default class Invoice extends BaseEntity {
 
     @UpdateDateColumn()
     updatedAt: Date
+
+    @DeleteDateColumn()
+    deletedAt: Date
 
 }
