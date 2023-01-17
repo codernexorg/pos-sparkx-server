@@ -1,10 +1,12 @@
 import {
     BaseEntity,
-    Entity,
-    PrimaryGeneratedColumn,
     Column,
     CreateDateColumn,
-    UpdateDateColumn, ManyToMany
+    Entity,
+    JoinTable,
+    ManyToMany,
+    PrimaryGeneratedColumn,
+    UpdateDateColumn
 } from "typeorm";
 import Product from "./product";
 
@@ -26,7 +28,8 @@ export default class Invoice extends BaseEntity {
     @Column({nullable: true, default: "Spark X Fashion Wear Limited"})
     businessName: string
 
-    @ManyToMany(() => Product, product => product.invoice)
+    @ManyToMany(() => Product, product => product)
+    @JoinTable()
     products: Product[]
 
     @Column()

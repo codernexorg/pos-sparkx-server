@@ -3,14 +3,13 @@ import {
     Column,
     CreateDateColumn,
     Entity,
-    JoinColumn, ManyToMany,
+    JoinColumn,
     ManyToOne,
     PrimaryGeneratedColumn,
     UpdateDateColumn
 } from 'typeorm';
 import User from './user';
 import WareHouse from './warehouse';
-import Invoice from "./invoice";
 
 @Entity()
 export default class Product extends BaseEntity {
@@ -88,9 +87,6 @@ export default class Product extends BaseEntity {
     @ManyToOne(() => WareHouse, wh => wh.products)
     @JoinColumn()
     whId: WareHouse;
-
-    @ManyToMany(() => Invoice, invoice => invoice.products)
-    invoice: Invoice
 
     @ManyToOne(() => User, user => user.products)
     @JoinColumn()
