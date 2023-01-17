@@ -1,10 +1,13 @@
 import {
     BaseEntity,
-    Entity,
-    PrimaryGeneratedColumn,
     Column,
     CreateDateColumn,
-    UpdateDateColumn, OneToMany
+    DeleteDateColumn,
+    Entity,
+    JoinTable,
+    ManyToMany,
+    PrimaryGeneratedColumn,
+    UpdateDateColumn
 } from "typeorm";
 import Product from "./product";
 
@@ -16,7 +19,7 @@ export default class Invoice extends BaseEntity {
     id: number;
 
     @Column({
-        default: "#0001", nullable: true
+        default: "000001", nullable: true
     })
     invoiceNo: string
 
@@ -26,7 +29,8 @@ export default class Invoice extends BaseEntity {
     @Column({nullable: true, default: "Spark X Fashion Wear Limited"})
     businessName: string
 
-    @OneToMany(() => Product, product => product.invoice)
+    @ManyToMany(() => Product, product => product)
+    @JoinTable()
     products: Product[]
 
     @Column()
@@ -39,5 +43,8 @@ export default class Invoice extends BaseEntity {
 
     @UpdateDateColumn()
     updatedAt: Date
+
+    @DeleteDateColumn()
+    deletedAt: Date
 
 }
