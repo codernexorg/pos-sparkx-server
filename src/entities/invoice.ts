@@ -29,6 +29,9 @@ export default class Invoice extends BaseEntity {
     @Column({nullable: true, default: "Spark X Fashion Wear Limited"})
     businessName: string
 
+    @Column({nullable: true})
+    customerName: string
+
     @ManyToMany(() => Product, product => product)
     @JoinTable()
     products: Product[]
