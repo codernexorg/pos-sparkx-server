@@ -4,22 +4,32 @@ import ErrorHandler from "../utils/errorHandler";
 
 export const createInvoice: ControllerFn = async (req, res, next) => {
 
-    const {itemCodes, totalPrice} = req.body as { itemCodes: string[], totalPrice: number }
+    interface Items {
+        itemCodes: string[],
+        quantity: number
+    }
+
+    const {items: {itemCodes}, invoiceAmount} = req.body as { items: Items, invoiceAmount: number }
+
+    console.log(req.body)
+    if (!itemCodes) {
+        return next(new ErrorHandler("No product to sell", 404))
+    }
 
     const products: Product[] = []
 
     for (let i = 0; i < itemCodes.length; i++) {
-        const product = await Product.findOne({
-            where: {
-                itemCode: itemCodes[i]
-            }
-        })
+        const product = await Product.findOneBy({itemCode: itemCodes[i]})
+
+        console.log(itemCodes[i])
 
         if (product) {
             products.push(product)
         }
     }
-    const unsoldItems = products.filter(product => product.sellingStatus !== "Sold")
+
+    const unsoldItems = products.filter(product => product.sellingStatus.toLowerCase() === "unsold")
+
 
     if (unsoldItems.length === 0) {
         return next(new ErrorHandler("No unsold items found", 404))
@@ -39,7 +49,14 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
     const invoice = new Invoice()
 
     invoice.products = unsoldItems
-    invoice.invoiceAmount = totalPrice
+    invoice.invoiceStatus = invoiceAmount <= req.body?.paidAmount ? "Paid" : "Due"
+    invoice.invoiceAmount = req.body?.invoiceAmount
+    invoice.paidAmount = req.body?.paidAmount
+    invoice.changeAmount = req.body?.invoiceAmount < req.body?.paidAmount ? req.body?.paidAmount - req.body?.invoiceAmount : 0
+    invoice.dueAmount = req.body?.invoiceAmount > req.body?.paidAmount ? req.body?.invoiceAmount - req.body?.paidAmount : 0
+    invoice.customerName = req.body?.customerName
+    invoice.customerMobile = req.body?.customerMobile
+    invoice.quantity = unsoldItems.length
     invoice.invoiceNo = prevInvoice[prevInvoice.length - 1]?.invoiceNo ? (parseInt(prevInvoice[prevInvoice.length - 1]?.invoiceNo) + 1).toString().padStart(6, '0') : '000001'
 
     await invoice.save()
@@ -79,8 +96,11 @@ export const updateInvoice: ControllerFn = async (req, res, next) => {
         return next(new ErrorHandler("No such invoice found", 404))
     }
 
-    invoice.invoiceStatus = req.body?.invoiceStatus
+    invoice.invoiceStatus = req.body?.invoiceAmount === req.body?.paidAmount ? "Paid" : "Due"
     invoice.invoiceAmount = req.body?.invoiceAmount
+    invoice.paidAmount = req.body?.paidAmount
+    invoice.customerName = req.body?.customerName
+    invoice.customerMobile = req.body?.customerMobile
 
     await invoice.save({reload: true})
 
