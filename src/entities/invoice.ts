@@ -23,14 +23,20 @@ export default class Invoice extends BaseEntity {
     })
     invoiceNo: string
 
-    @Column({nullable: true, default: "Paid"})
+    @Column({nullable: true, default: "Paid", enum: ["Paid", "Due"]})
     invoiceStatus: string
 
     @Column({nullable: true, default: "Spark X Fashion Wear Limited"})
     businessName: string
 
+    @Column({nullable: true, default: "Dhaka, Dhaka, Bangladesh"})
+    businessAddress: string
+
     @Column({nullable: true})
     customerName: string
+
+    @Column({nullable: true})
+    customerMobile: string
 
     @ManyToMany(() => Product, product => product)
     @JoinTable()
@@ -38,6 +44,17 @@ export default class Invoice extends BaseEntity {
 
     @Column()
     invoiceAmount: number
+
+    @Column({nullable: true})
+    paidAmount: number
+
+    @Column({nullable: true})
+    dueAmount: number
+
+    @Column({nullable: true})
+    changeAmount: number
+    @Column({nullable: true})
+    quantity: number
 
 
     @CreateDateColumn()
