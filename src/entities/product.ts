@@ -4,6 +4,7 @@ import {
     CreateDateColumn,
     Entity,
     JoinColumn,
+    JoinTable,
     ManyToOne,
     PrimaryGeneratedColumn,
     UpdateDateColumn
@@ -89,7 +90,7 @@ export default class Product extends BaseEntity {
     whId: WareHouse;
 
     @ManyToOne(() => User, user => user.products)
-    @JoinColumn()
+    @JoinTable()
     creator: User;
 
     @Column({type: 'float'})

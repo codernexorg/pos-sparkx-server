@@ -1,14 +1,16 @@
 import {
-  BaseEntity,
-  Column,
-  CreateDateColumn,
-  Entity,
-  JoinColumn,
-  OneToMany,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn
+    BaseEntity,
+    Column,
+    CreateDateColumn,
+    Entity,
+    JoinColumn,
+    JoinTable,
+    ManyToOne,
+    OneToMany,
+    PrimaryGeneratedColumn,
+    UpdateDateColumn
 } from 'typeorm';
-import { UserRole } from '../types';
+import {UserRole} from '../types';
 import Brand from './brand';
 import Category from './category';
 import Product from './product';
@@ -18,46 +20,50 @@ import WareHouse from './warehouse';
 
 @Entity()
 export default class User extends BaseEntity {
-  @PrimaryGeneratedColumn()
-  id: number;
+    @PrimaryGeneratedColumn()
+    id: number;
 
-  @Column({ unique: true })
-  username: string;
+    @Column({unique: true})
+    username: string;
 
-  @Column({ nullable: true })
-  name: string;
+    @Column({nullable: true})
+    name: string;
 
-  @Column({ unique: true })
-  email: string;
+    @Column({unique: true})
+    email: string;
 
-  @Column()
-  password: string;
+    @Column()
+    password: string;
 
-  @Column({ default: UserRole.MA, type: 'enum', enum: UserRole })
-  role: UserRole;
+    @ManyToOne(() => Showroom, sr => sr.assignedUsers, {nullable: true})
+    assignedShowroom: Showroom
 
-  @OneToMany(() => Product, product => product.creator)
-  products: Product[];
+    @Column({default: UserRole.MA, type: 'enum', enum: UserRole})
+    role: string;
 
-  @OneToMany(() => Supplier, sup => sup.creator)
-  suppliers: Supplier[];
+    @OneToMany(() => Product, product => product.creator)
+    @JoinTable()
+    products: Product[];
 
-  @OneToMany(() => WareHouse, wh => wh.creator)
-  warehouses: WareHouse[];
+    @OneToMany(() => Supplier, sup => sup.creator)
+    suppliers: Supplier[];
 
-  @OneToMany(() => Showroom, sr => sr.creator)
-  showrooms: Showroom[];
+    @OneToMany(() => WareHouse, wh => wh.creator)
+    warehouses: WareHouse[];
 
-  @OneToMany(() => Category, cat => cat.user)
-  @JoinColumn()
-  categories: Category[];
+    @OneToMany(() => Showroom, sr => sr.creator)
+    showrooms: Showroom[];
 
-  @OneToMany(() => Brand, brand => brand.creator)
-  brands: Brand[];
+    @OneToMany(() => Category, cat => cat.user)
+    @JoinColumn()
+    categories: Category[];
 
-  @CreateDateColumn()
-  createdAt: Date;
+    @OneToMany(() => Brand, brand => brand.creator)
+    brands: Brand[];
 
-  @UpdateDateColumn()
-  updatedAt: Date;
+    @CreateDateColumn()
+    createdAt: Date;
+
+    @UpdateDateColumn()
+    updatedAt: Date;
 }
