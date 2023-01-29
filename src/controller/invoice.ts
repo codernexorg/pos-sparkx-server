@@ -1,4 +1,4 @@
-import {Invoice, Product, Showroom} from '../entities';
+import {Customer, Invoice, Product, Showroom} from '../entities';
 import {ControllerFn} from '../types';
 import ErrorHandler from '../utils/errorHandler';
 
@@ -10,8 +10,8 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
 
     const {
         items: {itemCodes},
-        invoiceAmount
-    } = req.body as { items: Items; invoiceAmount: number };
+        invoiceAmount, customerId
+    } = req.body as { items: Items; invoiceAmount: number, customerId: number };
 
     if (!itemCodes) {
         return next(new ErrorHandler('No product to sell', 404));
@@ -26,6 +26,15 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
         });
     }
 
+    let customer: Customer | null = null;
+
+    if (customerId) {
+        customer = await Customer.findOne({where: {id: customerId}, relations: {products: true}})
+    }
+
+    if (!customer && Number(req.body?.invoiceAmount) > Number((req.body?.paidAmount + req.body?.discountAmount))) {
+        return next(new ErrorHandler('Due Only Possible With Registered Customer', 404))
+    }
 
     const products: Product[] = [];
 
@@ -77,7 +86,7 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
             req.body?.invoiceAmount
             : 0)
     invoice.dueAmount =
-        Number(req.body?.invoiceAmount >= (req.body?.paidAmount + req.body?.discountAmount)
+        Number(req.body?.invoiceAmount > (req.body?.paidAmount + req.body?.discountAmount)
             ? (req.body?.invoiceAmount -
                 (req.body?.paidAmount + req.body?.discountAmount))
             : 0)
@@ -92,6 +101,13 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
         : '000001';
 
     await invoice.save();
+
+    if (customer) {
+        customer.products.push(...invoice.products)
+        customer.due = customer.due + invoice.dueAmount
+        customer.paid = customer.paid + invoice.paidAmount
+        await customer.save();
+    }
 
     if (showroom) {
         showroom.invoices.push(invoice)
