@@ -3,13 +3,11 @@ import {
     Column,
     CreateDateColumn,
     Entity,
-    JoinTable,
-    ManyToOne,
     OneToMany,
     PrimaryGeneratedColumn,
     UpdateDateColumn
 } from 'typeorm';
-import User from './user';
+import {Invoice} from "./index";
 
 @Entity()
 export default class Showroom extends BaseEntity {
@@ -21,16 +19,14 @@ export default class Showroom extends BaseEntity {
     @Column()
     showroomCode: string;
 
+    @Column({nullable: true})
+    showroomMobile: string
+
     @Column()
     showroomAddress: string;
 
-    @OneToMany(() => User, user => user.assignedShowroom, {nullable: true})
-    assignedUsers: User[]
-
-
-    @ManyToOne(() => User, user => user.showrooms)
-    @JoinTable()
-    creator: User;
+    @OneToMany(() => Invoice, invoice => invoice.showroomId)
+    invoices: Invoice[]
 
     @CreateDateColumn()
     createdAt: Date;

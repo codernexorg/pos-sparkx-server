@@ -3,14 +3,11 @@ import {
     Column,
     CreateDateColumn,
     Entity,
-    JoinColumn,
-    JoinTable,
     ManyToOne,
     PrimaryGeneratedColumn,
     UpdateDateColumn
 } from 'typeorm';
-import User from './user';
-import WareHouse from './warehouse';
+import Customer from "./customer";
 
 @Entity()
 export default class Product extends BaseEntity {
@@ -52,7 +49,7 @@ export default class Product extends BaseEntity {
     @Column({nullable: true, type: 'float'})
     unitTotalCost: number;
 
-    @Column()
+    @Column({nullable: true})
     whName: string;
 
     @Column()
@@ -64,7 +61,7 @@ export default class Product extends BaseEntity {
     @Column({nullable: true})
     grossMargin: string;
 
-    @Column({default: 'unsold'})
+    @Column({default: 'Unsold', enum: ['Unsold', 'Sold', 'Lost', 'Damaged', 'Returned']})
     sellingStatus: string;
 
     @Column({default: 0})
@@ -85,16 +82,11 @@ export default class Product extends BaseEntity {
     @Column({nullable: true})
     brand: string;
 
-    @ManyToOne(() => WareHouse, wh => wh.products)
-    @JoinColumn()
-    whId: WareHouse;
-
-    @ManyToOne(() => User, user => user.products)
-    @JoinTable()
-    creator: User;
-
     @Column({type: 'float'})
     sellPrice: number;
+
+    @ManyToOne(() => Customer, c => c.products, {nullable: true})
+    customer: Customer
 
     @CreateDateColumn()
     createdAt: Date;

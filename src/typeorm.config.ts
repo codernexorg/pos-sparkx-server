@@ -3,15 +3,17 @@ import config from './config';
 
 import {
     Barcode,
-    User,
-    Product,
-    WareHouse,
-    ProductGroup,
+    Brand,
     Category,
+    Customer,
+    Employee,
+    Invoice,
+    Product,
+    ProductGroup,
     Showroom,
     Supplier,
-    Invoice,
-    Brand
+    User,
+    WareHouse
 } from "./entities";
 
 const dataSource = new DataSource({
@@ -20,7 +22,7 @@ const dataSource = new DataSource({
     password: config.DB_PASS,
     host: config.DB_HOST,
     database: config.DB_NAME,
-    logging: config.NODE_ENV === 'development',
+    logging: config.NODE_ENV === 'production',
     synchronize: true,
     port: config.DB_PORT,
     entities: [
@@ -32,7 +34,7 @@ const dataSource = new DataSource({
         Showroom,
         Supplier,
         Barcode,
-        Invoice, Brand
+        Invoice, Brand, Customer, Employee
 
     ]
 });

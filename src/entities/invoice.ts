@@ -6,10 +6,12 @@ import {
     Entity,
     JoinTable,
     ManyToMany,
+    ManyToOne,
     PrimaryGeneratedColumn,
     UpdateDateColumn
 } from "typeorm";
 import Product from "./product";
+import {Showroom} from "./index";
 
 
 @Entity()
@@ -42,6 +44,9 @@ export default class Invoice extends BaseEntity {
     @JoinTable()
     products: Product[]
 
+    @ManyToOne(() => Showroom, sr => sr.id)
+    showroomId: number
+
     @Column()
     invoiceAmount: number
 
@@ -53,6 +58,10 @@ export default class Invoice extends BaseEntity {
 
     @Column({nullable: true})
     changeAmount: number
+
+    @Column({nullable: true, default: 0})
+    discountAmount: number
+
     @Column({nullable: true})
     quantity: number
 

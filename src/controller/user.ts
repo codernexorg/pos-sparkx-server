@@ -16,7 +16,7 @@ export const createUser: ControllerFn = async (req, res, next) => {
     if (!UserAccessLevel.includes(role)) {
         return next(
             new ErrorHandler(
-                `Please provide valid role ${UserRole.MA}||${UserRole.SA}||${UserRole.SM}||${UserRole.MA}`,
+                `Please provide valid role ${UserRole.SA}||${UserRole.SM}||${UserRole.SO}`,
                 403
             )
         );
@@ -51,11 +51,10 @@ export const createUser: ControllerFn = async (req, res, next) => {
     user.password = hashPwd
     user.name = name
     user.role = role
-    console.log(assignedShowroom)
     if (assignedShowroom !== 'All') {
         const showroom = await Showroom.findOne({where: {showroomName: assignedShowroom}});
         if (showroom) {
-            user.assignedShowroom = showroom
+            user.assignedShowroom = showroom.showroomName
         }
     }
 
@@ -65,12 +64,7 @@ export const createUser: ControllerFn = async (req, res, next) => {
 };
 
 export const getUsers: ControllerFn = async (_req, res, _next) => {
-    const user = await User.find({
-        relations: {
-            products: true,
-            assignedShowroom: true
-        }
-    });
+    const user = await User.find();
     return res.status(200).json(user);
 };
 

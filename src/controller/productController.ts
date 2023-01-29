@@ -3,9 +3,9 @@ import moment from 'moment';
 import xlsx from 'xlsx';
 import Product from '../entities/product';
 import ProductGroup from '../entities/productGroup';
-import dataSource from '../typeorm.config';
 import {ControllerFn} from '../types';
 import ErrorHandler from '../utils/errorHandler';
+import {Showroom} from "../entities";
 
 export const createProductGroup: ControllerFn = async (req, res, next) => {
     const {productCategory, productCode, productName} =
@@ -39,7 +39,6 @@ export const createSingleProduct: ControllerFn = async (req, res, next) => {
         invoiceNumber,
         unitCost,
         sellPrice,
-        supplierName,
         transportationCost,
         lotNumber,
         totalItem
@@ -51,8 +50,6 @@ export const createSingleProduct: ControllerFn = async (req, res, next) => {
         !invoiceNumber ||
         !unitCost ||
         !sellPrice ||
-        !supplierName ||
-        !transportationCost ||
         !lotNumber ||
         !totalItem
     ) {
@@ -66,74 +63,81 @@ export const createSingleProduct: ControllerFn = async (req, res, next) => {
         }
     });
 
+
     if (totalItem > 1) {
         let itemMCode = parseInt(itemCode);
         for (let i = 0; i < totalItem; i++) {
             productArr.push({
                 ...req.body,
-                itemCode: itemMCode.toString().padStart(10, '0'),
-                productCode: productCode?.productCode,
-                grossProfit: (sellPrice - (transportationCost + unitCost)).toString(),
-                grossMargin: (
-                    sellPrice -
-                    (transportationCost + unitCost) -
-                    (transportationCost + unitCost) / sellPrice -
-                    (transportationCost + unitCost)
-                ).toString(),
-                unitTotalCost: unitCost + transportationCost
+                itemCode: String(itemMCode.toString().padStart(10, '0')),
+                productCode: String(productCode?.productCode),
+                grossProfit: String(transportationCost ? (sellPrice - (transportationCost + unitCost)).toString() : (sellPrice - unitCost).toString()),
+                grossMargin: String(transportationCost ? (
+                    (sellPrice -
+                        (transportationCost + unitCost)) / sellPrice * 100
+                ).toString() : (
+                    (sellPrice - unitCost) / sellPrice * 100
+                ).toString()),
+                unitTotalCost: Number(transportationCost ? unitCost + transportationCost : unitCost)
             });
             itemMCode = itemMCode + 1;
         }
+
 
         productArr.every(async product => {
             const productToSave = Product.create({
                 ...product,
                 invoiceDate: new Date(product.invoiceDate)
             });
-
             await productToSave.save();
         });
         return res.json(productArr);
-    } else if (totalItem === 1) {
+    } else {
         const productToSave = Product.create({
             ...req.body,
             invoiceDate: moment(req.body.invoiceDate).toDate(),
             productCode: productCode?.productCode,
-            unitTotalCost: transportationCost + unitCost,
-            grossProfit: (sellPrice - (transportationCost + unitCost)).toString(),
-            grossMargin: (
-                sellPrice -
-                (transportationCost + unitCost) -
-                (transportationCost + unitCost) / sellPrice -
-                (transportationCost + unitCost)
-            ).toString()
+            unitTotalCost: Number(transportationCost ? unitCost + transportationCost : unitCost),
+            grossProfit: String(transportationCost ? (sellPrice - (transportationCost + unitCost)).toString() : (sellPrice - unitCost).toString()),
+            grossMargin: String(transportationCost ? (
+                (sellPrice -
+                    (transportationCost + unitCost)) / sellPrice * 100
+            ).toString() : (
+                (sellPrice - unitCost) / sellPrice * 100
+            ).toString()),
         });
+
         await productToSave.save();
-        return res.json(productToSave);
+        return res.json([productToSave]);
     }
-    return; // console.log(productArr);
 };
 
-export const getProducts: ControllerFn = async (req, res) => {
-    const qb = dataSource
-        .getRepository(Product)
-        .createQueryBuilder('product')
-        .orderBy('"itemCode"', 'ASC')
-        .take();
-
-    if (req.query.cursor) {
-        console.log('Entering Cursor');
-        qb.where('"itemCode" >= :cursor', {
-            cursor: parseInt(req.query.cursor)
+export const getProducts: ControllerFn = async (req, res, next) => {
+    if (req.showroomId) {
+        const showroom = await Showroom.findOne({where: {id: req.showroomId}});
+        if (!showroom) {
+            return next(new ErrorHandler("Unexpected Result", 404))
+        }
+        const product = await Product.find({
+            order: {
+                itemCode: 'ASC'
+            }, where: {showroomName: showroom.showroomName}
+        })
+        res.status(200).json({
+            product: product,
+            hasMore: false
+        });
+    } else {
+        const product = await Product.find({
+            order: {
+                itemCode: 'ASC'
+            }
+        })
+        res.status(200).json({
+            product: product,
+            hasMore: false
         });
     }
-
-    const product = await qb.getMany();
-
-    res.status(200).json({
-        product: product,
-        hasMore: false
-    });
 };
 
 export const getProductGroup: ControllerFn = async (_req, res) => {
@@ -156,6 +160,7 @@ export const createMultipleProducts: ControllerFn = async (req, res, next) => {
         return next(new ErrorHandler('Please Enter Required Information', 404));
     }
 
+
     products.every(async (product: Product) => {
         ProductGroup.findOne({
             where: {productName: product['productGroup']}
@@ -163,19 +168,19 @@ export const createMultipleProducts: ControllerFn = async (req, res, next) => {
             const productToSave = Product.create({
                 ...product,
                 invoiceDate: moment(req.body.invoiceDate).toDate(),
-                productCode: value?.productCode,
-                grossProfit: (
+                productCode: String(value?.productCode),
+                grossProfit: String((
                     product.sellPrice -
                     (product.transportationCost + product.unitCost)
-                ).toString(),
-                grossMargin: (
+                ).toString()),
+                grossMargin: String((
                     product.sellPrice -
                     (product.transportationCost + product.unitCost) -
                     (product.transportationCost + product.unitCost) / product.sellPrice -
                     (product.transportationCost + product.unitCost)
-                ).toString(),
+                ).toString()),
                 totalItem: products.length,
-                unitCost: product.unitCost + product.transportationCost
+                unitCost: Number(product.unitCost + product.transportationCost)
             });
             await productToSave.save();
         });
@@ -217,17 +222,17 @@ export const importProduct = async (
         const productToSave = Product.create({
             ...product,
             invoiceDate: moment(product.invoiceDate).toDate(),
-            itemCode: parseInt(product.itemCode).toString().padStart(10, '0'),
-            grossProfit: (product.sellPrice - product.unitCost).toString(),
-            grossMargin: (
+            itemCode: String(parseInt(product.itemCode).toString().padStart(10, '0')),
+            grossProfit: String((product.sellPrice - product.unitCost).toString()),
+            grossMargin: String((
                 product.sellPrice -
                 product.unitCost -
                 product.unitCost / product.sellPrice -
                 +product.unitCost
-            ).toString(),
-            unitTotalCost: product.transportationCost
+            ).toString()),
+            unitTotalCost: Number(product.transportationCost
                 ? product.unitCost + product.transportationCost
-                : product.unitCost,
+                : product.unitCost),
 
             deliveryDate: moment(product.deliveryDate).toDate()
         });
@@ -237,3 +242,22 @@ export const importProduct = async (
 
     res.status(200).json({message: 'Data imported successfully', data: data});
 };
+
+
+export const transferProduct: ControllerFn = async (req, res, next) => {
+    const {showroomId, lotNumber} = req.body
+    if (!showroomId || !lotNumber) {
+        return next(new ErrorHandler('Required Parameter Missing', 400));
+    }
+    const showroom = await Showroom.findOne({where: {id: showroomId}});
+
+    const products = await Product.findBy({lotNumber})
+
+    if (!products.length || !showroom) {
+        return next(new ErrorHandler('Showroom Or Product Not Found', 400));
+    }
+
+    await showroom.save()
+
+    res.status(200).json({message: 'Product transferred successfully', data: products});
+}

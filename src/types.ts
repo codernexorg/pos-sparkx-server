@@ -7,6 +7,7 @@ export type ControllerFn = (
         user?: User | null;
         query?: any;
         params: any;
+        showroomId?: number
     },
     res: Response,
     next: NextFunction
@@ -28,14 +29,12 @@ export type LoginInput = {
 };
 
 export enum UserRole {
-    MA = 'MasterAdmin',
     SA = 'SuperAdmin',
     SM = 'ShowroomManager',
     SO = 'SalesOperator'
 }
 
 export const UserAccessLevel = [
-    'MasterAdmin',
     'SuperAdmin',
     'ShowroomManager',
     'SalesOperator'

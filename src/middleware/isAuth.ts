@@ -17,7 +17,7 @@ export const isAuth: ControllerFn = async (req, _res, next) => {
         }
     });
 
-    if (!user) {
+    if (!user?.id) {
         return next(new ErrorHandler('Please Login', 401));
     }
     req.user = user;
@@ -27,7 +27,6 @@ export const isAuth: ControllerFn = async (req, _res, next) => {
 
 export const isSuperAdmin: ControllerFn = async (req, __res, next) => {
     const role = req.user?.role;
-
     if (role !== UserRole.SA) {
         return next(
             new ErrorHandler('You are not authorized to perform this action', 401)
@@ -39,7 +38,7 @@ export const isSuperAdmin: ControllerFn = async (req, __res, next) => {
 export const commonAuth: ControllerFn = async (req, _res, next) => {
     const role = req.user?.role as string;
     if (UserAccessLevel.includes(role)) {
-        next();
+        return next();
     } else {
         return next(
             new ErrorHandler('You are not authorized to perform this action', 401)

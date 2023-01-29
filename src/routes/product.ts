@@ -1,23 +1,26 @@
 import express from 'express';
 import multer from 'multer';
-import { createCat, getCat } from '../controller/category';
+import {createCat, getCat} from '../controller/category';
 import {
   createMultipleProducts,
   createProductGroup,
   createSingleProduct,
   getProductGroup,
   getProducts,
-  importProduct
+  importProduct,
+  transferProduct
 } from '../controller/productController';
+import {isSuperAdmin} from "../middleware/isAuth";
 
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({storage: multer.memoryStorage()});
 const productRoutes = express.Router();
-productRoutes.route('/group').post(createProductGroup).get(getProductGroup);
+productRoutes.route('/group').post(isSuperAdmin, createProductGroup).get(getProductGroup);
 
-productRoutes.route('/category').post(createCat).get(getCat);
+productRoutes.route('/category').post(isSuperAdmin, createCat).get(getCat);
 
-productRoutes.route('/single').post(createSingleProduct);
-productRoutes.route('/multiple').post(createMultipleProducts);
+productRoutes.route('/single').post(isSuperAdmin, createSingleProduct);
+productRoutes.route('/multiple').post(isSuperAdmin, createMultipleProducts);
 productRoutes.post('/import', upload.single('file'), importProduct);
 productRoutes.get('/', getProducts);
+productRoutes.post('/transfer', isSuperAdmin, transferProduct);
 export default productRoutes;

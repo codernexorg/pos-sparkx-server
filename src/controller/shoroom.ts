@@ -15,7 +15,7 @@ export const createShowroom: ControllerFn = async (req, res, next) => {
         return next(new ErrorHandler('Showroom with this code already exist', 404));
     }
 
-    const showroom = Showroom.create(req.body);
+    const showroom = Showroom.create({...req.body, creator: req.user});
 
     await showroom.save();
 
@@ -26,10 +26,6 @@ export const updateShowroom = async () => {
 export const deleteShowroom = async () => {
 };
 export const getShowroom: ControllerFn = async (_req, res) => {
-    const showrooms = await Showroom.find({
-        relations: {
-            assignedUsers: true
-        }
-    });
+    const showrooms = await Showroom.find();
     return res.status(200).json(showrooms);
 };
