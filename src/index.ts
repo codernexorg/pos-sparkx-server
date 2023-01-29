@@ -15,6 +15,7 @@ import warehouseRoutes from './routes/warehouse';
 import dataSource from './typeorm.config';
 import invoiceRoutes from "./routes/invoice";
 import {showRoomAccess} from "./middleware/showroom";
+import customerRoutes from "./routes/customer";
 
 const server = async (app: Application) => {
     const whiteList = [
@@ -74,6 +75,8 @@ const server = async (app: Application) => {
     app.use('/api/v1/brands', isAuth, commonAuth, brandRoutes);
 
     app.use('/api/v1/invoice', isAuth, commonAuth, showRoomAccess, invoiceRoutes)
+
+    app.use('/api/v1/customer', isAuth, commonAuth, customerRoutes)
 
     app.use(errorMiddleware);
     app.listen(config.PORT, () => {
