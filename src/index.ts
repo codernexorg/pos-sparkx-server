@@ -67,16 +67,16 @@ const server = async (app: Application) => {
 
     app.use('/api/v1/supplier', isAuth, commonAuth, showRoomAccess, supplierRoutes);
 
-    app.use('/api/v1/warehouse', isAuth, commonAuth, warehouseRoutes);
-    app.use('/api/v1/showroom', isAuth, commonAuth, showroomRoutes);
+    app.use('/api/v1/warehouse', isAuth, commonAuth, showRoomAccess, warehouseRoutes);
+    app.use('/api/v1/showroom', isAuth, commonAuth, showRoomAccess, showroomRoutes);
 
-    app.use('/api/v1/barcode', isAuth, commonAuth, barcodeRoutes);
+    app.use('/api/v1/barcode', isAuth, commonAuth, showRoomAccess, barcodeRoutes);
 
-    app.use('/api/v1/brands', isAuth, commonAuth, brandRoutes);
+    app.use('/api/v1/brands', isAuth, commonAuth, showRoomAccess, brandRoutes);
 
     app.use('/api/v1/invoice', isAuth, commonAuth, showRoomAccess, invoiceRoutes)
 
-    app.use('/api/v1/customer', isAuth, commonAuth, customerRoutes)
+    app.use('/api/v1/customer', isAuth, commonAuth, showRoomAccess, customerRoutes)
 
     app.use(errorMiddleware);
     app.listen(config.PORT, () => {

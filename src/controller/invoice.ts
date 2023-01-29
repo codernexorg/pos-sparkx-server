@@ -16,24 +16,26 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
     if (!itemCodes) {
         return next(new ErrorHandler('No product to sell', 404));
     }
-    console.log(req.showroomId)
 
-    const showroom = await Showroom.findOne({
-        where: {id: req.showroomId}
-    });
+    let showroom: Showroom | null = null;
 
-    if (!showroom) {
-        return next(new ErrorHandler('Something went wrong', 404));
+    if (req.showroomId) {
+        showroom = await Showroom.findOne({
+            where: {id: req.showroomId},
+            relations: {invoices: true}
+        });
     }
 
 
     const products: Product[] = [];
 
+
     for (let i = 0; i < itemCodes.length; i++) {
         let product;
-        if (showroom)
+        if (showroom) {
+            console.log("Checking Showroom Product")
             product = await Product.findOne({where: {itemCode: itemCodes[i], showroomName: showroom.showroomName}});
-        else product = await Product.findOne({where: {itemCode: itemCodes[i]}});
+        } else product = await Product.findOne({where: {itemCode: itemCodes[i]}});
         if (product) {
             products.push(product);
         }
@@ -90,6 +92,11 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
         : '000001';
 
     await invoice.save();
+
+    if (showroom) {
+        showroom.invoices.push(invoice)
+        await showroom.save()
+    }
 
     res.status(200).json(invoice);
 };
