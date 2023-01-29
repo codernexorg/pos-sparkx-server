@@ -1,39 +1,37 @@
 import {
-  BaseEntity,
-  Column,
-  CreateDateColumn,
-  Entity,
-  ManyToOne,
-  OneToMany,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn
+    BaseEntity,
+    Column,
+    CreateDateColumn,
+    Entity,
+    ManyToOne,
+    PrimaryGeneratedColumn,
+    UpdateDateColumn
 } from 'typeorm';
-import Product from './product';
 import User from './user';
 
 @Entity()
 export default class WareHouse extends BaseEntity {
-  @PrimaryGeneratedColumn()
-  whId: number;
+    @PrimaryGeneratedColumn()
+    whId: number;
 
-  @Column()
-  whCode: string;
+    @Column()
+    whCode: string;
 
-  @Column()
-  whName: string;
+    @Column()
+    whName: string;
 
-  @Column({ nullable: true })
-  whLocation: string;
+    @Column({nullable: true})
+    whMobile: string
 
-  @ManyToOne(() => User, user => user.id, { nullable: true })
-  creator: User;
+    @Column({nullable: true})
+    whLocation: string;
 
-  @OneToMany(() => Product, product => product.whId, { nullable: true })
-  products: Product[];
+    @ManyToOne(() => User, user => user.id, {nullable: true})
+    creator: User;
 
-  @CreateDateColumn()
-  createdAt: Date;
+    @CreateDateColumn()
+    createdAt: Date;
 
-  @UpdateDateColumn()
-  updatedAt: Date;
+    @UpdateDateColumn()
+    updatedAt: Date;
 }
