@@ -21,11 +21,33 @@ export const createShowroom: ControllerFn = async (req, res, next) => {
 
     return res.status(200).json(showroom);
 };
-export const updateShowroom = async () => {
+export const updateShowroom: ControllerFn = async (req, res, next) => {
+    const id = req.params.id
+
+    const showroom = await Showroom.findOne({where: {id}, relations: {invoices: true}})
+    if (!showroom) {
+        return next(new ErrorHandler('Showroom Does not exist', 404))
+    }
+
+    Object.assign(showroom, req.body)
+
+    await showroom.save(req.body)
+    res.status(200).json(showroom)
 };
-export const deleteShowroom = async () => {
+export const deleteShowroom: ControllerFn = async (req, res, next) => {
+    const id = req.params.id
+
+    const showroom = await Showroom.findOne({where: {id}, relations: {invoices: true}})
+    if (!showroom) {
+        return next(new ErrorHandler('Showroom Does not exist', 404))
+    }
+
+    Object.assign(showroom, req.body)
+
+    await showroom.remove()
+    res.status(200).json({message: 'Showroom Deleted', updatedData: await Showroom.find({relations: {invoices: true}})})
 };
 export const getShowroom: ControllerFn = async (_req, res) => {
-    const showrooms = await Showroom.find();
+    const showrooms = await Showroom.find({relations: {invoices: true}});
     return res.status(200).json(showrooms);
 };

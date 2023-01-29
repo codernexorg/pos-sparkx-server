@@ -12,8 +12,10 @@ export const showRoomAccess: ControllerFn = async (req, _res, next) => {
         where: {showroomName: user.assignedShowroom},
     })
     if (user.assignedShowroom === 'All' && user.role.includes(UserRole.SA)) {
+        console.log("USer is super admin")
         next()
     } else if (showroom && user.role.includes(UserRole.SO) || user.role.includes(UserRole.SM)) {
+        console.log("Normal user")
         req.showroomId = showroom?.id
         next()
     } else {
