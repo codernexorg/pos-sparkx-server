@@ -44,6 +44,18 @@ export default class Invoice extends BaseEntity {
     @JoinTable()
     products: Product[]
 
+    @Column({nullable: true})
+    showroomName: string
+
+    @Column({nullable: true})
+    showroomAddress: string
+
+    @Column({nullable: true})
+    showroomInvoiceCode: string
+
+    @Column({nullable: true})
+    showroomMobile: string
+
     @ManyToOne(() => Showroom, sr => sr.id)
     showroomId: number
 
