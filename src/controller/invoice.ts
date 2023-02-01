@@ -100,7 +100,6 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
             .padStart(6, '0')
         : '000001';
 
-    await invoice.save();
 
     if (customer) {
         customer.products.push(...invoice.products)
@@ -112,8 +111,12 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
     if (showroom) {
         showroom.invoices.push(invoice)
         await showroom.save()
+        invoice.showroomInvoiceCode = showroom.showroomCode + showroom?.invoices[showroom?.invoices.length - 1].invoiceNo
+        invoice.showroomAddress = showroom.showroomAddress
+        invoice.showroomMobile = showroom.showroomMobile
+        invoice.showroomName = showroom.showroomName
     }
-
+    await invoice.save();
     res.status(200).json(invoice);
 };
 
@@ -155,15 +158,30 @@ export const updateInvoice: ControllerFn = async (req, res, next) => {
 
     await invoice.save({reload: true});
 
-    res.status(200).json({message: 'Invoice Updated', invoice});
+    res.status(200).json(invoice);
 };
 
-export const getInvoices: ControllerFn = async (_req, res) => {
-    const invoices = await Invoice.find({
-        relations: {
-            products: true
-        }
-    });
+export const getInvoices: ControllerFn = async (req, res, _next) => {
 
-    res.status(200).json(invoices);
+    const showroom = await Showroom.findOne({where: {id: req.showroomId}})
+    if (showroom) {
+        const invoices = await Invoice.find({
+            relations: {
+                products: true
+            },
+            where: {
+                showroomName: showroom?.showroomName
+            }
+        })
+        res.status(200).json(invoices)
+    } else {
+        const invoices = await Invoice.find({
+            relations: {
+                products: true
+            }
+        })
+        res.status(200).json(invoices)
+    }
+
+
 };
