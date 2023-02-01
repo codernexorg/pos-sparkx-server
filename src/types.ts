@@ -7,7 +7,8 @@ export type ControllerFn = (
         user?: User | null;
         query?: any;
         params: any;
-        showroomId?: number
+        showroomId?: number;
+        session?: any;
     },
     res: Response,
     next: NextFunction

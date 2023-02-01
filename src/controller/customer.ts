@@ -33,7 +33,7 @@ export const deleteCustomer: ControllerFn = async (req, res, next) => {
     }
     await customer.remove()
 
-    res.status(200).json({message: 'Customer Deleted', data: await Customer.find()})
+    res.status(200).json(await Customer.find())
 }
 
 export const updateCustomer: ControllerFn = async (req, res, next) => {
@@ -49,5 +49,5 @@ export const updateCustomer: ControllerFn = async (req, res, next) => {
 
     await customer.save()
 
-    res.status(200).json({message: 'Customer Updated', data: customer})
+    res.status(200).json(customer)
 }
