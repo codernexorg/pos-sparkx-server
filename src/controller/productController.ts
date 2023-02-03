@@ -245,19 +245,24 @@ export const importProduct = async (
 
 
 export const transferProduct: ControllerFn = async (req, res, next) => {
-    const {showroomId, lotNumber} = req.body
-    if (!showroomId || !lotNumber) {
-        return next(new ErrorHandler('Required Parameter Missing', 400));
+    const {
+        showroomName,
+        lotNumber,
+        whName,
+        itemCodes
+    } = req.body as { showroomName: string, lotNumber: string, whName: string, itemCodes: { itemCode: string }[] }
+
+    if (!showroomName || !whName || !lotNumber || !itemCodes.length) {
+        return next(new ErrorHandler("Please Provide All Information", 404))
     }
-    const showroom = await Showroom.findOne({where: {id: showroomId}});
+    itemCodes.every(async (item) => {
+        const product = await Product.findOne({where: {itemCode: item.itemCode}})
 
-    const products = await Product.findBy({lotNumber})
-
-    if (!products.length || !showroom) {
-        return next(new ErrorHandler('Showroom Or Product Not Found', 400));
-    }
-
-    await showroom.save()
-
-    res.status(200).json({message: 'Product transferred successfully', data: products});
+        if (product) {
+            product.whName = showroomName
+            product.showroomName = showroomName
+            await product.save()
+        }
+    })
+    res.status(200).json("Product Transferred Successfully")
 }

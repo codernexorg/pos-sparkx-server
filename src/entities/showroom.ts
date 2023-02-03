@@ -25,7 +25,8 @@ export default class Showroom extends BaseEntity {
     @Column()
     showroomAddress: string;
 
-    @OneToMany(() => Invoice, invoice => invoice.showroomId)
+
+    @OneToMany(() => Invoice, invoice => invoice.showroomId, {onDelete: 'CASCADE', onUpdate: 'CASCADE'})
     invoices: Invoice[]
 
     @CreateDateColumn()

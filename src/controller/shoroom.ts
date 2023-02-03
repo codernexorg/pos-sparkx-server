@@ -44,8 +44,9 @@ export const deleteShowroom: ControllerFn = async (req, res, next) => {
 
     Object.assign(showroom, req.body)
 
+
     await showroom.remove()
-    res.status(200).json({message: 'Showroom Deleted', updatedData: await Showroom.find({relations: {invoices: true}})})
+    res.status(200).json(await Showroom.find({relations: {invoices: true}}))
 };
 export const getShowroom: ControllerFn = async (_req, res) => {
     const showrooms = await Showroom.find({relations: {invoices: true}});
