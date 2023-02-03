@@ -164,7 +164,9 @@ export const updateInvoice: ControllerFn = async (req, res, next) => {
 export const getInvoices: ControllerFn = async (req, res, _next) => {
 
     const showroom = await Showroom.findOne({where: {id: req.showroomId}})
-    if (showroom) {
+
+
+    if (showroom && req.showroomId) {
         const invoices = await Invoice.find({
             relations: {
                 products: true
@@ -180,6 +182,7 @@ export const getInvoices: ControllerFn = async (req, res, _next) => {
                 products: true
             }
         })
+
         res.status(200).json(invoices)
     }
 

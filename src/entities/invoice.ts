@@ -56,7 +56,7 @@ export default class Invoice extends BaseEntity {
     @Column({nullable: true})
     showroomMobile: string
 
-    @ManyToOne(() => Showroom, sr => sr.id)
+    @ManyToOne(() => Showroom, sr => sr.id, {onDelete: 'CASCADE'})
     showroomId: number
 
     @Column()

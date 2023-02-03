@@ -23,9 +23,32 @@ export const createWarehouse: ControllerFn = async (req, res, next) => {
 
     return res.status(200).json(warehouse);
 };
-export const updateWarehouse = async () => {
+export const updateWarehouse: ControllerFn = async (req, res, next) => {
+    const id = req.params.id
+
+    const wareHouse = await WareHouse.findOne({where: {whId: id}})
+    if (!wareHouse) {
+        return next(new ErrorHandler('Location Does not exist', 404))
+    }
+
+    Object.assign(wareHouse, req.body)
+
+    await wareHouse.save(req.body)
+    res.status(200).json(wareHouse)
 };
-export const deleteWarehouse = async () => {
+export const deleteWarehouse: ControllerFn = async (req, res, next) => {
+    const id = req.params.id
+
+    const wareHouse = await WareHouse.findOne({where: {whId: id}})
+    if (!wareHouse) {
+        return next(new ErrorHandler('Location Does not exist', 404))
+    }
+
+    Object.assign(wareHouse, req.body)
+
+
+    await wareHouse.remove()
+    res.status(200).json(await WareHouse.find())
 };
 export const getWarehouse: ControllerFn = async (_req, res) => {
     const warehouses = await WareHouse.find();
