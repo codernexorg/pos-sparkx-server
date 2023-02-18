@@ -1,4 +1,15 @@
-import {BaseEntity, Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn} from "typeorm";
+import {
+    BaseEntity,
+    Column,
+    CreateDateColumn,
+    Entity,
+    OneToMany,
+    PrimaryGeneratedColumn,
+    UpdateDateColumn
+} from "typeorm";
+import Invoice from "./invoice";
+import {EmpDesignation} from "../types";
+import Salary from "./salary";
 
 @Entity()
 export default class Employee extends BaseEntity {
@@ -11,12 +22,29 @@ export default class Employee extends BaseEntity {
     @Column()
     empPhone: string
 
+    @Column({enum: EmpDesignation, type: 'enum'})
+    designation: EmpDesignation
+
     @Column({nullable: true})
     empEmail: string
 
     @Column({nullable: true})
 
     empAddress: string
+
+    @Column({nullable: true, default: 0})
+    empSalary: number
+
+    @OneToMany(() => Invoice, iv => iv.employee, {cascade: true, eager: true})
+    sales: Invoice[]
+
+    @Column({nullable: true})
+    joiningDate: Date
+
+    @OneToMany(() => Salary, sl => sl.employee, {cascade: true, eager: true})
+    salary: Salary[]
+    @Column()
+    showroom: string
 
     @CreateDateColumn()
     createdAt: Date

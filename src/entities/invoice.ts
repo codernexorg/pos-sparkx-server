@@ -11,7 +11,8 @@ import {
     UpdateDateColumn
 } from "typeorm";
 import Product from "./product";
-import {Showroom} from "./index";
+import {Employee, Showroom} from "./index";
+import {InvoiceStatus} from "../types";
 
 
 @Entity()
@@ -25,8 +26,8 @@ export default class Invoice extends BaseEntity {
     })
     invoiceNo: string
 
-    @Column({nullable: true, default: "Paid", enum: ["Paid", "Due"]})
-    invoiceStatus: string
+    @Column({nullable: true, default: InvoiceStatus.Paid, enum: InvoiceStatus, type: 'enum'})
+    invoiceStatus: InvoiceStatus
 
     @Column({nullable: true, default: "Spark X Fashion Wear Limited"})
     businessName: string
@@ -40,7 +41,7 @@ export default class Invoice extends BaseEntity {
     @Column({nullable: true})
     customerMobile: string
 
-    @ManyToMany(() => Product, product => product)
+    @ManyToMany(() => Product, product => product, {cascade: true, eager: true})
     @JoinTable()
     products: Product[]
 
@@ -56,24 +57,32 @@ export default class Invoice extends BaseEntity {
     @Column({nullable: true})
     showroomMobile: string
 
-    @ManyToOne(() => Showroom, sr => sr.id, {onDelete: 'CASCADE'})
+    @ManyToOne(() => Showroom, sr => sr.invoices, {
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
+    })
     showroomId: number
 
-    @Column()
+    @ManyToOne(() => Employee, emp => emp.sales, {onDelete: 'CASCADE', onUpdate: 'CASCADE'})
+    employee: Employee
+
+    @Column({type: 'float', nullable: true})
     invoiceAmount: number
 
-    @Column({nullable: true})
+    @Column({nullable: true, type: 'float'})
     paidAmount: number
 
-    @Column({nullable: true})
+    @Column({nullable: true, type: 'float'})
     dueAmount: number
 
-    @Column({nullable: true})
+    @Column({nullable: true, type: 'float'})
     changeAmount: number
 
-    @Column({nullable: true, default: 0})
+    @Column({nullable: true, default: 0, type: 'float'})
     discountAmount: number
 
+    @Column({nullable: true, default: 0, type: 'float'})
+    vat: number
     @Column({nullable: true})
     quantity: number
 

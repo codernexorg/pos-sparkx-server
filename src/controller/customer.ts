@@ -1,10 +1,16 @@
 import {ControllerFn} from "../types";
-import {Customer} from "../entities";
+import {Customer, Showroom} from "../entities";
 import ErrorHandler from "../utils/errorHandler";
 
-export const getCustomers: ControllerFn = async (_req, res, _next) => {
-    const customers = await Customer.find({relations: {products: true}})
-    res.status(200).json(customers)
+export const getCustomers: ControllerFn = async (req, res, _next) => {
+    const showroom = await Showroom.findOne({where: {id: req.showroomId}})
+    if (req.showroomId && showroom) {
+        res.status(200).json(showroom.customer)
+    } else {
+        const customers = await Customer.find()
+        res.status(200).json(customers)
+    }
+
 }
 export const createCustomer: ControllerFn = async (req, res, next) => {
     const {customerName, customerPhone} = req.body as Customer
@@ -13,15 +19,34 @@ export const createCustomer: ControllerFn = async (req, res, next) => {
         return next(new ErrorHandler('Customer Name and Phone are required', 400))
     }
 
+    const showroom = await Showroom.findOne({where: {id: req.showroomId}})
+
     const isExist = await Customer.findOne({where: {customerPhone}, relations: {products: true}})
 
     if (isExist) {
         return next(new ErrorHandler('Customer with this Phone already exists', 400))
     }
-    const customer = Customer.create(req.body)
 
-    await customer.save()
-    res.status(201).json(customer)
+    if (req.showroomId && showroom) {
+        const customer = Customer.create(req.body)
+        showroom.customer.push(customer)
+        await showroom.save()
+        await customer.save()
+        res.status(201).json(customer)
+
+
+    } else {
+
+        const customer = Customer.create(req.body)
+        const headOffice = await Showroom.findOne({where: {showroomCode: 'HO'}})
+        if (!headOffice) return next(new ErrorHandler('Showroom not found', 400))
+        headOffice?.customer.push(customer)
+        await headOffice.save()
+        await customer.save()
+        res.status(201).json(customer)
+    }
+
+
 }
 
 export const deleteCustomer: ControllerFn = async (req, res, next) => {
