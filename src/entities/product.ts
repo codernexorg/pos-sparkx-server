@@ -7,7 +7,8 @@ import {
     PrimaryGeneratedColumn,
     UpdateDateColumn
 } from 'typeorm';
-import Customer from "./customer";
+import {TransferProduct} from "./index";
+import {ProductStatus} from "../types";
 
 @Entity()
 export default class Product extends BaseEntity {
@@ -52,7 +53,7 @@ export default class Product extends BaseEntity {
     @Column({nullable: true})
     whName: string;
 
-    @Column()
+    @Column({nullable: true})
     showroomName: string;
 
     @Column({nullable: true})
@@ -61,8 +62,8 @@ export default class Product extends BaseEntity {
     @Column({nullable: true})
     grossMargin: string;
 
-    @Column({default: 'Unsold', enum: ['Unsold', 'Sold', 'Lost', 'Damaged', 'Returned']})
-    sellingStatus: string;
+    @Column({default: ProductStatus.Unsold, type: 'enum', enum: ProductStatus, nullable: true})
+    sellingStatus: ProductStatus;
 
     @Column({default: 0})
     returnStatus: number;
@@ -82,14 +83,25 @@ export default class Product extends BaseEntity {
     @Column({nullable: true})
     brand: string;
 
-    @Column({type: 'float'})
+    @Column({nullable: true, default: 0, type: 'float'})
+    discount: number
+
+    @Column({type: 'float', default: 0, nullable: true})
     sellPrice: number;
 
-    @ManyToOne(() => Customer, c => c.products, {nullable: true})
-    customer: Customer
+    @Column({type: 'float', default: 0, nullable: true})
+    sellPriceAfterDiscount: number;
+
+    @ManyToOne(() => TransferProduct, t => t.transferredProducts, {
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
+        nullable: true
+    })
+    transferredHistory: TransferProduct;
 
     @CreateDateColumn()
     createdAt: Date;
+
 
     @UpdateDateColumn()
     updatedAt: Date;

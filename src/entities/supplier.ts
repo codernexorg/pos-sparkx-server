@@ -1,4 +1,13 @@
-import {BaseEntity, Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn} from 'typeorm';
+import {
+    BaseEntity,
+    Column,
+    CreateDateColumn,
+    Entity,
+    ManyToOne,
+    PrimaryGeneratedColumn,
+    UpdateDateColumn
+} from 'typeorm';
+import {Showroom} from "./index";
 
 @Entity()
 export default class Supplier extends BaseEntity {
@@ -11,7 +20,7 @@ export default class Supplier extends BaseEntity {
     @Column({nullable: true})
     supplierEmail: string;
 
-    @Column()
+    @Column({nullable: true})
     contactPersonName: string;
 
     @Column({nullable: true})
@@ -25,6 +34,9 @@ export default class Supplier extends BaseEntity {
 
     @Column({nullable: true})
     extraInfo: string;
+
+    @ManyToOne(() => Showroom, sr => sr.supplier, {onDelete: 'CASCADE', onUpdate: 'CASCADE'})
+    showroom: Supplier
 
     @CreateDateColumn()
     createdAt: Date;

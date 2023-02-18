@@ -1,9 +1,10 @@
+import "reflect-metadata";
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express, {Application, Request, Response} from 'express';
 import config from './config';
 import errorMiddleware from './middleware/err';
-import {commonAuth, isAuth} from './middleware/isAuth';
+import {commonAuth, isAuth, isSuperAdmin} from './middleware/isAuth';
 import authRoute from './routes/auth';
 import barcodeRoutes from './routes/barcode';
 import brandRoutes from './routes/brand';
@@ -14,10 +15,21 @@ import userRouter from './routes/user';
 import warehouseRoutes from './routes/warehouse';
 import dataSource from './typeorm.config';
 import invoiceRoutes from "./routes/invoice";
+
 import {showRoomAccess} from "./middleware/showroom";
 import customerRoutes from "./routes/customer";
+import http from "http";
+import Server from "socket.io";
+import employeeRoutes from "./routes/employee";
+import taxRoutes from "./routes/tax";
+import seedRoutes from "./routes/seed";
+import businessRoutes from "./routes/business";
+import reports from "./routes/reports";
+import expense from "./routes/expense";
 
-const server = async (app: Application) => {
+const mount = async (app: Application) => {
+    const server = new http.Server(app)
+    const io = new Server.Server(server)
     const whiteList = [
         'http://localhost:3002',
         'http://localhost:3000',
@@ -77,11 +89,23 @@ const server = async (app: Application) => {
     app.use('/api/v1/invoice', isAuth, commonAuth, showRoomAccess, invoiceRoutes)
 
     app.use('/api/v1/customer', isAuth, commonAuth, showRoomAccess, customerRoutes)
+    app.use('/api/v1/employee', isAuth, commonAuth, showRoomAccess, employeeRoutes)
 
+    app.use('/api/v1/tax', isAuth, commonAuth, isSuperAdmin, taxRoutes)
+    app.use('/api/v1/business', isAuth, commonAuth, isSuperAdmin, businessRoutes)
+    app.use('/api/v1/db', seedRoutes)
+    app.use('/api/v1/reports', reports)
+    app.use('/api/v1/expense', isAuth, commonAuth, showRoomAccess, expense)
     app.use(errorMiddleware);
-    app.listen(config.PORT, () => {
+
+
+    io.on('connection', function (socket) {
+        console.log('client connected', socket);
+    })
+
+    server.listen(config.PORT, () => {
         console.log(`Development Server Started on PORT: ${config.PORT}`);
     });
 };
 
-server(express());
+mount(express()).catch(e => console.log(e));

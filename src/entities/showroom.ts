@@ -7,7 +7,8 @@ import {
     PrimaryGeneratedColumn,
     UpdateDateColumn
 } from 'typeorm';
-import {Invoice} from "./index";
+import Invoice from "./invoice";
+import {Customer, Expenses, Supplier} from "./index";
 
 @Entity()
 export default class Showroom extends BaseEntity {
@@ -25,8 +26,20 @@ export default class Showroom extends BaseEntity {
     @Column()
     showroomAddress: string;
 
+    @OneToMany(() => Expenses, ex => ex.showroom, {cascade: true, eager: true})
+    expenses: Expenses[];
 
-    @OneToMany(() => Invoice, invoice => invoice.showroomId, {onDelete: 'CASCADE', onUpdate: 'CASCADE'})
+    @OneToMany(() => Supplier, sr => sr.showroom, {cascade: true, eager: true})
+    supplier: Supplier[]
+
+    @OneToMany(() => Customer, cm => cm.showroom, {cascade: true, eager: true})
+    customer: Customer[]
+
+
+    @OneToMany(() => Invoice, invoice => invoice.showroomId, {
+        eager: true,
+        cascade: true
+    })
     invoices: Invoice[]
 
     @CreateDateColumn()

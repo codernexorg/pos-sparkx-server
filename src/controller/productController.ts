@@ -5,7 +5,7 @@ import Product from '../entities/product';
 import ProductGroup from '../entities/productGroup';
 import {ControllerFn} from '../types';
 import ErrorHandler from '../utils/errorHandler';
-import {Showroom} from "../entities";
+import {Showroom, TransferProduct} from "../entities";
 
 export const createProductGroup: ControllerFn = async (req, res, next) => {
     const {productCategory, productCode, productName} =
@@ -123,6 +123,7 @@ export const getProducts: ControllerFn = async (req, res, next) => {
                 itemCode: 'ASC'
             }, where: {showroomName: showroom.showroomName}
         })
+        console.log(product.length)
         res.status(200).json({
             product: product,
             hasMore: false
@@ -234,7 +235,8 @@ export const importProduct = async (
                 ? product.unitCost + product.transportationCost
                 : product.unitCost),
 
-            deliveryDate: moment(product.deliveryDate).toDate()
+            deliveryDate: moment(product.deliveryDate).toDate(),
+            sellPrice: Number(product.sellPrice),
         });
 
         await productToSave.save();
@@ -255,14 +257,65 @@ export const transferProduct: ControllerFn = async (req, res, next) => {
     if (!showroomName || !whName || !lotNumber || !itemCodes.length) {
         return next(new ErrorHandler("Please Provide All Information", 404))
     }
-    itemCodes.every(async (item) => {
-        const product = await Product.findOne({where: {itemCode: item.itemCode}})
+    try {
+        const productArr: Product[] = []
 
-        if (product) {
-            product.whName = showroomName
-            product.showroomName = showroomName
-            await product.save()
+        for (const itemCode of itemCodes) {
+            const product = await Product.findOne({where: {itemCode: itemCode.itemCode}})
+
+            if (product) {
+                productArr.push(product)
+
+                product.whName = showroomName
+                product.showroomName = showroomName
+                await product.save()
+            }
         }
+        const transferData = new TransferProduct()
+        transferData.transferredLot = lotNumber
+        transferData.prevLocation = whName
+        transferData.currentLocation = showroomName
+        transferData.productCount = itemCodes.length
+        transferData.transferredProducts = productArr
+
+        await transferData.save()
+        res.status(200).json("Product Transferred Successfully")
+    } catch (e) {
+        console.log(e)
+        res.status(400).json({success: false, message: e.message})
+    }
+}
+
+export const getTransferHistory: ControllerFn = async (_req, res) => {
+    res.status(200).json(await TransferProduct.find())
+}
+
+export const importProductGroup: ControllerFn = async (req, res, next) => {
+    const file = req.file
+    if (!file) {
+        return next(new ErrorHandler('No File Found', 400));
+    }
+    const workbook = xlsx.read(file?.buffer, {type: 'buffer'});
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
+    const data: ProductGroup[] = xlsx.utils.sheet_to_json(sheet);
+
+    if (data.length === 0) {
+        return next(new ErrorHandler('No Data Found', 400));
+    }
+
+    if (!data[0].productCode || !data[0].productName || !data[0].productCategory) {
+        return next(new ErrorHandler('Product Name, Code & Category Required', 400));
+    }
+
+    data.every(async item => {
+        const productGroup = new ProductGroup();
+
+        productGroup.productName = item.productName;
+        productGroup.productCategory = item.productCategory;
+        productGroup.productCode = item.productCode;
+
+        await productGroup.save();
     })
-    res.status(200).json("Product Transferred Successfully")
+    res.status(200).json({message: 'Data Imported Successfully'})
 }

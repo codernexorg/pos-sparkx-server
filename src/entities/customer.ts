@@ -3,11 +3,13 @@ import {
     Column,
     CreateDateColumn,
     Entity,
-    OneToMany,
+    JoinTable,
+    ManyToMany,
+    ManyToOne,
     PrimaryGeneratedColumn,
     UpdateDateColumn
 } from "typeorm";
-import {Product} from "./index";
+import {Product, Showroom} from "./index";
 
 @Entity()
 export default class Customer extends BaseEntity {
@@ -36,8 +38,12 @@ export default class Customer extends BaseEntity {
     @Column({nullable: true, default: 0})
     paid: number;
 
-    @OneToMany(() => Product, p => p.customer)
+    @ManyToMany(() => Product, object => object, {eager: true, cascade: true})
+    @JoinTable()
     products: Product[]
+
+    @ManyToOne(() => Showroom, sr => sr.customer, {onDelete: "CASCADE", onUpdate: "CASCADE"})
+    showroom: Showroom
 
     @CreateDateColumn()
     createdAt: Date

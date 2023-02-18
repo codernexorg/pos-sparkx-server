@@ -35,6 +35,26 @@ export enum UserRole {
     SO = 'SalesOperator'
 }
 
+export enum ProductStatus {
+    Hold = 'Hold',
+    Return = 'Return',
+    Sold = 'Sold',
+    Damaged = 'Damaged',
+    Lost = 'Lost',
+    Unsold = 'Unsold'
+}
+
+export enum EmpDesignation {
+    Manager = 'Manager',
+    SalesMan = 'SalesMan',
+    Other = 'Other'
+}
+
+export enum InvoiceStatus {
+
+    Paid = "Paid", Due = "Due", Hold = "Hold"
+}
+
 export const UserAccessLevel = [
     'SuperAdmin',
     'ShowroomManager',

@@ -1,13 +1,4 @@
-import {
-    BaseEntity,
-    Column,
-    CreateDateColumn,
-    Entity,
-    ManyToOne,
-    PrimaryGeneratedColumn,
-    UpdateDateColumn
-} from 'typeorm';
-import User from './user';
+import {BaseEntity, Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn} from 'typeorm';
 
 @Entity()
 export default class WareHouse extends BaseEntity {
@@ -25,9 +16,6 @@ export default class WareHouse extends BaseEntity {
 
     @Column({nullable: true})
     whLocation: string;
-
-    @ManyToOne(() => User, user => user.id, {nullable: true})
-    creator: User;
 
     @CreateDateColumn()
     createdAt: Date;
