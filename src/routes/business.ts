@@ -1,6 +1,6 @@
 import express from "express";
-import {Business} from "../entities";
 import ErrorHandler from "../utils/errorHandler";
+import Business from "../entities/business";
 
 const businessRoutes = express.Router();
 

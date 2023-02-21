@@ -1,6 +1,10 @@
-import {Customer, Employee, Invoice, Product, Showroom} from '../entities';
 import {ControllerFn, InvoiceStatus, ProductStatus} from '../types';
 import ErrorHandler from '../utils/errorHandler';
+import Product from "../entities/product";
+import Showroom from "../entities/showroom";
+import Employee from "../entities/employee";
+import Customer from "../entities/customer";
+import Invoice from "../entities/invoice";
 
 export const createInvoice: ControllerFn = async (req, res, next) => {
 
@@ -160,6 +164,7 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
 
     } else {
         invoice.showroomInvoiceCode = 'HO' + invoice.invoiceNo
+        invoice.showroomName = 'Head Office'
     }
 
     employee.sales.push(invoice)
@@ -316,6 +321,7 @@ export const updateInvoice: ControllerFn = async (req, res, next) => {
         await showroom.save()
     } else {
         invoice.showroomInvoiceCode = 'HO' + invoice.invoiceNo
+        invoice.showroomName = 'Head Office'
     }
 
     employee.sales.push(invoice)

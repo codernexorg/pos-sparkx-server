@@ -7,8 +7,12 @@ import {
     PrimaryGeneratedColumn,
     UpdateDateColumn
 } from 'typeorm';
+import Expenses from "./expenses";
+import Supplier from "./supplier";
+import Customer from "./customer";
 import Invoice from "./invoice";
-import {Customer, Expenses, Supplier} from "./index";
+import User from "./user";
+
 
 @Entity()
 export default class Showroom extends BaseEntity {
@@ -42,6 +46,8 @@ export default class Showroom extends BaseEntity {
     })
     invoices: Invoice[]
 
+    @OneToMany(() => User, user => user.showroom, {eager: true, cascade: true})
+    users: User[]
     @CreateDateColumn()
     createdAt: Date;
 

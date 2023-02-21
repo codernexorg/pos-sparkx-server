@@ -5,7 +5,8 @@ import Product from '../entities/product';
 import ProductGroup from '../entities/productGroup';
 import {ControllerFn} from '../types';
 import ErrorHandler from '../utils/errorHandler';
-import {Showroom, TransferProduct} from "../entities";
+import Showroom from "../entities/showroom";
+import TransferProduct from "../entities/transfer";
 
 export const createProductGroup: ControllerFn = async (req, res, next) => {
     const {productCategory, productCode, productName} =

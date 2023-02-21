@@ -2,7 +2,7 @@ import Supplier from '../entities/supplier';
 import {ControllerFn} from '../types';
 import ErrorHandler from '../utils/errorHandler';
 import xlsx from "xlsx";
-import {Showroom} from "../entities";
+import Showroom from "../entities/showroom";
 
 export const createSupplier: ControllerFn = async (req, res, next) => {
     const {supplierName, contactPersonName, contactPersonNumber} =

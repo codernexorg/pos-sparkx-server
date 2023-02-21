@@ -1,6 +1,6 @@
-import {Showroom} from "../entities";
 import ErrorHandler from "../utils/errorHandler";
 import {ControllerFn, UserRole} from "../types";
+import Showroom from "../entities/showroom";
 
 
 export const showRoomAccess: ControllerFn = async (req, _res, next) => {

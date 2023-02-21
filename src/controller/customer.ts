@@ -1,5 +1,6 @@
 import {ControllerFn} from "../types";
-import {Customer, Showroom} from "../entities";
+import Customer from '../entities/customer'
+import Showroom from '../entities/showroom'
 import ErrorHandler from "../utils/errorHandler";
 
 export const getCustomers: ControllerFn = async (req, res, _next) => {

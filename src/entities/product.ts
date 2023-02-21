@@ -7,8 +7,9 @@ import {
     PrimaryGeneratedColumn,
     UpdateDateColumn
 } from 'typeorm';
-import {TransferProduct} from "./index";
 import {ProductStatus} from "../types";
+import Purchase from "./purchase";
+import TransferProduct from "./transfer";
 
 @Entity()
 export default class Product extends BaseEntity {
@@ -98,6 +99,9 @@ export default class Product extends BaseEntity {
         nullable: true
     })
     transferredHistory: TransferProduct;
+
+    @ManyToOne(() => Purchase, p => p.products, {onDelete: 'CASCADE', onUpdate: 'CASCADE'})
+    purchase: Purchase
 
     @CreateDateColumn()
     createdAt: Date;

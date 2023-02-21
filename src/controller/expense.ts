@@ -2,7 +2,9 @@ import {ControllerFn} from "../types";
 import ErrorHandler from "../utils/errorHandler";
 import ExpenseType from "../entities/expenseType";
 import Expenses from "../entities/expenses";
-import {Employee, Salary, Showroom} from "../entities";
+import Showroom from "../entities/showroom";
+import Employee from "../entities/employee";
+import Salary from "../entities/salary";
 
 export const getExpenseTypes: ControllerFn = async (_req, res, _next) => {
     const expenseTypes = await ExpenseType.find();

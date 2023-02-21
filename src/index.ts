@@ -1,4 +1,3 @@
-import "reflect-metadata";
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express, {Application, Request, Response} from 'express';
@@ -26,8 +25,11 @@ import seedRoutes from "./routes/seed";
 import businessRoutes from "./routes/business";
 import reports from "./routes/reports";
 import expense from "./routes/expense";
+import purchase from "./routes/purchase";
 
 const mount = async (app: Application) => {
+
+    await dataSource.initialize();
     const server = new http.Server(app)
     const io = new Server.Server(server)
     const whiteList = [
@@ -56,7 +58,6 @@ const mount = async (app: Application) => {
     app.use(express.json());
     app.use(express.urlencoded({extended: true, limit: '100mb'}));
 
-    await dataSource.initialize();
 
     app.get('/', async (req: Request, res: Response) => {
         const serverInfo = {
@@ -73,9 +74,8 @@ const mount = async (app: Application) => {
 
     app.use('/api/v1/user', userRouter);
     app.use('/api/v1/auth', authRoute);
-    // app.use('/api/v1/customer')
     app.use('/api/v1/product', isAuth, commonAuth, showRoomAccess, productRoutes);
-    // app.use('/api/v1/purchase')
+    app.use('/api/v1/purchase', isAuth, commonAuth, isSuperAdmin, purchase)
 
     app.use('/api/v1/supplier', isAuth, commonAuth, showRoomAccess, supplierRoutes);
 
@@ -94,7 +94,7 @@ const mount = async (app: Application) => {
     app.use('/api/v1/tax', isAuth, commonAuth, isSuperAdmin, taxRoutes)
     app.use('/api/v1/business', isAuth, commonAuth, isSuperAdmin, businessRoutes)
     app.use('/api/v1/db', seedRoutes)
-    app.use('/api/v1/reports', reports)
+    app.use('/api/v1/reports', isAuth, commonAuth, reports)
     app.use('/api/v1/expense', isAuth, commonAuth, showRoomAccess, expense)
     app.use(errorMiddleware);
 

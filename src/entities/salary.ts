@@ -1,5 +1,5 @@
 import {BaseEntity, Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn} from "typeorm";
-import {Employee} from "./index";
+import Employee from "./employee";
 
 @Entity()
 export default class Salary extends BaseEntity {

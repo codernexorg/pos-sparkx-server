@@ -7,12 +7,13 @@ import {
     PrimaryGeneratedColumn,
     UpdateDateColumn
 } from "typeorm";
-import Invoice from "./invoice";
 import {EmpDesignation} from "../types";
+import Invoice from "./invoice";
 import Salary from "./salary";
 
 @Entity()
 export default class Employee extends BaseEntity {
+
     @PrimaryGeneratedColumn()
     id: number
 

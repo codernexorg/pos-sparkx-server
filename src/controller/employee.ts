@@ -1,6 +1,8 @@
 import {ControllerFn} from "../types";
-import {Employee, Showroom} from "../entities";
+
 import ErrorHandler from "../utils/errorHandler";
+import Employee from "../entities/employee";
+import Showroom from "../entities/showroom";
 
 export const createEmp: ControllerFn = async (req, res, next) => {
     const {empName, designation, empPhone, showroom} = req.body as Employee

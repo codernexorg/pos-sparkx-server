@@ -1,8 +1,8 @@
 //Sells Reports
 
 import {ControllerFn} from "../types";
-import {Invoice} from "../entities";
 import dataSource from "../typeorm.config";
+import Invoice from "../entities/invoice";
 
 export const sellsReport: ControllerFn = async (req, res, _next) => {
     const {to_date, from_date = new Date(Date.now()), today} = req.query

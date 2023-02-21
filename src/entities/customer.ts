@@ -9,7 +9,8 @@ import {
     PrimaryGeneratedColumn,
     UpdateDateColumn
 } from "typeorm";
-import {Product, Showroom} from "./index";
+import Product from "./product";
+import Showroom from "./showroom";
 
 @Entity()
 export default class Customer extends BaseEntity {

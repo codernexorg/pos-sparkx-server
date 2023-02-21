@@ -10,9 +10,10 @@ import {
     PrimaryGeneratedColumn,
     UpdateDateColumn
 } from "typeorm";
-import Product from "./product";
-import {Employee, Showroom} from "./index";
 import {InvoiceStatus} from "../types";
+import Product from "./product";
+import Employee from "./employee";
+import Showroom from "./showroom";
 
 
 @Entity()
@@ -61,7 +62,7 @@ export default class Invoice extends BaseEntity {
         onDelete: 'CASCADE',
         onUpdate: 'CASCADE',
     })
-    showroomId: number
+    showroomId: Showroom
 
     @ManyToOne(() => Employee, emp => emp.sales, {onDelete: 'CASCADE', onUpdate: 'CASCADE'})
     employee: Employee

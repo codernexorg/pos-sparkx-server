@@ -60,3 +60,11 @@ export const UserAccessLevel = [
     'ShowroomManager',
     'SalesOperator'
 ];
+
+
+export enum PurchaseStatus {
+    Received = 'Received',
+    Ordered = 'Ordered',
+    Pending = 'Pending',
+    Returned = 'Returned',
+}

@@ -1,6 +1,6 @@
 import {ControllerFn} from "../types";
-import {Tax} from "../entities";
 import ErrorHandler from "../utils/errorHandler";
+import Tax from "../entities/tax";
 
 export const createTax: ControllerFn = async (req, res, next) => {
 

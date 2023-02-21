@@ -5,7 +5,7 @@ import User from '../entities/user';
 import {ControllerFn, CreateUserInput, LoginInput, UserAccessLevel, UserRole} from '../types';
 import ErrorHandler from '../utils/errorHandler';
 import {sendToken} from '../utils/sendToken';
-import {Showroom} from "../entities";
+import Showroom from "../entities/showroom";
 
 export const createUser: ControllerFn = async (req, res, next) => {
     const {email, username, password, name, role, assignedShowroom} = req.body as CreateUserInput;

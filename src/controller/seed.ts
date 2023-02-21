@@ -1,6 +1,7 @@
 import {ControllerFn, UserRole} from "../types";
-import {Business, User} from "../entities";
 import bcrypt from "bcryptjs";
+import Business from "../entities/business";
+import User from "../entities/user";
 
 export const seed: ControllerFn = async (_req, res, _next) => {
 

@@ -7,7 +7,7 @@ import {
     PrimaryGeneratedColumn,
     UpdateDateColumn
 } from "typeorm";
-import {Showroom} from "./index";
+import Showroom from "./showroom";
 
 @Entity()
 export default class Expenses extends BaseEntity {

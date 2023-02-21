@@ -7,7 +7,7 @@ import {
     PrimaryGeneratedColumn,
     UpdateDateColumn
 } from "typeorm";
-import {Product} from "./index";
+import Product from "./product";
 
 @Entity()
 export default class TransferProduct extends BaseEntity {
@@ -28,7 +28,7 @@ export default class TransferProduct extends BaseEntity {
 
     @OneToMany(() => Product, p => p.transferredHistory, {cascade: true, eager: true})
     transferredProducts: Product[]
-    
+
 
     @CreateDateColumn()
     createdAt: Date
