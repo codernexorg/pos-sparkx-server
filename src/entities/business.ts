@@ -14,8 +14,17 @@ export default class Business extends BaseEntity {
     @Column()
     phone: string
 
-    @Column()
+    @Column({default: 'bdt'})
     currencyCode: string
+
+    @Column({nullable: true})
+    twilioSid: string;
+
+    @Column({nullable: true})
+    twilioAuthToken: string
+
+    @Column({nullable: true})
+    twilioNumber: string
 
     @Column({type: 'float', default: 0})
     defaultTax: number

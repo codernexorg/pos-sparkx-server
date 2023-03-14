@@ -1,10 +1,11 @@
 import express from "express";
-import {createInvoice, deleteInvoice, getInvoices, updateInvoice} from "../controller/invoice";
-import {isSuperAdmin} from "../middleware/isAuth";
+import { createInvoice, getInvoices } from "../controller/invoice";
+import ReturnProduct from "../controller/return";
 
-const invoiceRoutes = express.Router()
+const invoiceRoutes = express.Router();
 
 invoiceRoutes.route('/').get(getInvoices).post(createInvoice)
-invoiceRoutes.route('/:id').patch(updateInvoice).delete(isSuperAdmin, deleteInvoice)
+// invoiceRoutes.route('/:id').patch(updateInvoice)
+invoiceRoutes.route('/return').get(ReturnProduct.getReturnProduct).post(ReturnProduct.createReturnProduct)
 
 export default invoiceRoutes

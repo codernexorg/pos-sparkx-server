@@ -1,45 +1,44 @@
 import {
-    BaseEntity,
-    Column,
-    CreateDateColumn,
-    Entity,
-    OneToMany,
-    PrimaryGeneratedColumn,
-    UpdateDateColumn
+  BaseEntity,
+  Column,
+  CreateDateColumn,
+  Entity,
+  JoinTable,
+  ManyToMany,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from "typeorm";
-import {PurchaseStatus} from "../types";
+import { PurchaseStatus } from "../types";
 import Product from "./product";
 
 @Entity()
 export default class Purchase extends BaseEntity {
-    @PrimaryGeneratedColumn()
-    id: number
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @Column({nullable: true})
-    purchaseName: string
+  @Column()
+  invoiceNo: string;
 
-    @Column({nullable: true})
-    supplierName: string
+  @Column({ nullable: true })
+  supplierName: string;
 
-    @Column({type: 'float'})
-    purchaseAmount: number
+  @Column({ type: "float" })
+  purchaseAmount: number;
 
-    @Column({type: 'enum', enum: PurchaseStatus, default: PurchaseStatus.Received})
-    purchaseStatus: PurchaseStatus
+  @Column({
+    type: "enum",
+    enum: PurchaseStatus,
+    default: PurchaseStatus.Received,
+  })
+  purchaseStatus: PurchaseStatus;
 
-    @OneToMany(() => Product, p => p.purchase, {cascade: true, eager: true})
-    products: Product[]
+  @ManyToMany(() => Product, (product) => product.purchases)
+  @JoinTable({ name: "purchase__product" })
+  products: Product[];
 
-    @Column({type: 'float'})
-    dueAmount: number
+  @CreateDateColumn()
+  createdAt: Date;
 
-    @Column({type: 'float'})
-    paidAmount: number
-
-    @CreateDateColumn()
-    createdAt: Date
-
-    @UpdateDateColumn()
-    updatedAt: Date
-
+  @UpdateDateColumn()
+  updatedAt: Date;
 }

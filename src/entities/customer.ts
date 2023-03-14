@@ -1,54 +1,89 @@
 import {
-    BaseEntity,
-    Column,
-    CreateDateColumn,
-    Entity,
-    JoinTable,
-    ManyToMany,
-    ManyToOne,
-    PrimaryGeneratedColumn,
-    UpdateDateColumn
+  BaseEntity,
+  Column,
+  CreateDateColumn,
+  Entity,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from "typeorm";
-import Product from "./product";
 import Showroom from "./showroom";
+import Product from "./product";
 
 @Entity()
 export default class Customer extends BaseEntity {
-    @PrimaryGeneratedColumn()
-    id: number
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @Column()
-    customerName: string
+  @Column()
+  customerName: string;
 
-    @Column()
-    customerPhone: string
+  @Column()
+  customerPhone: string;
 
-    @Column({nullable: true})
-    customerEmail: string
+  @Column({ nullable: true })
+  customerEmail: string;
 
-    @Column({nullable: true})
+  @Column({ nullable: true })
+  customerAddress: string;
 
-    customerAddress: string
+  @Column({ nullable: true, default: 0 })
+  credit: number;
 
-    @Column({nullable: true, default: 0})
-    credit: number
+  @Column({ nullable: true, default: 0 })
+  due: number;
 
-    @Column({nullable: true, default: 0})
-    due: number
+  @Column({ nullable: true, default: 0 })
+  paid: number;
 
-    @Column({nullable: true, default: 0})
-    paid: number;
+  @OneToMany(() => Product, (iv) => iv.purchasedCustomer, {
+    eager: true,
+    cascade: true,
+  })
+  purchasedProducts: Product[];
 
-    @ManyToMany(() => Product, object => object, {eager: true, cascade: true})
-    @JoinTable()
-    products: Product[]
+  @OneToMany(() => Product, (rp) => rp.returnedCustomer, {
+    eager: true,
+    cascade: true,
+  })
+  returnedProducts: Product[];
 
-    @ManyToOne(() => Showroom, sr => sr.customer, {onDelete: "CASCADE", onUpdate: "CASCADE"})
-    showroom: Showroom
+  @ManyToOne(() => Showroom, (sr) => sr.customer, {
+    onDelete: "CASCADE",
+    onUpdate: "CASCADE",
+  })
+  showroom: Showroom;
 
-    @CreateDateColumn()
-    createdAt: Date
+  @Column({ nullable: true })
+  crm: string;
 
-    @UpdateDateColumn()
-    updatedAt: Date
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  addPurchase(product: Product): void {
+    if (this.purchasedProducts == null) {
+      this.purchasedProducts = new Array<Product>();
+    }
+    this.purchasedProducts.push(product);
+  }
+
+  returnPurchase(product: Product) {
+    if (this.returnedProducts == null) {
+      this.returnedProducts = new Array<Product>();
+    }
+    const productPurchased = this.purchasedProducts.find(
+      (p) => p.id === product.id
+    );
+    if (productPurchased) {
+      this.purchasedProducts = this.purchasedProducts.filter(
+        (p) => p.id !== product.id
+      );
+      this.returnedProducts.push(product);
+      console.log(this.returnedProducts);
+    }
+  }
 }

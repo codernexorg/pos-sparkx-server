@@ -1,49 +1,70 @@
-import {ControllerFn} from "../types";
+import { ControllerFn } from "../types";
 
 import ErrorHandler from "../utils/errorHandler";
 import Employee from "../entities/employee";
 import Showroom from "../entities/showroom";
 
 export const createEmp: ControllerFn = async (req, res, next) => {
-    const {empName, designation, empPhone, showroom} = req.body as Employee
-    console.log(req.body)
+  try {
+    const { empName, designation, empPhone } = req.body as Employee;
 
-    if (!empName || !designation || !empPhone || !showroom) {
-        return next(new ErrorHandler("Please Provide required Information", 400))
+    if (!empName || !designation || !empPhone) {
+      return next(new ErrorHandler("Please Provide required Information", 400));
+    }
+    let showroom: Showroom | null;
+
+    if (req.showroomId) {
+      showroom = await Showroom.findOne({ where: { id: req.showroomId } });
+    } else {
+      showroom = await Showroom.findOne({ where: { showroomCode: "HO" } });
     }
 
-    const isExist = await Employee.findOne({where: {empPhone}})
+    if (!showroom) {
+      return next(new ErrorHandler("Showroom Not Found", 400));
+    }
+
+    const isExist = await Employee.findOne({ where: { empPhone } });
 
     if (isExist) {
-        return next(new ErrorHandler("Employee Already Exists", 400))
+      return next(new ErrorHandler("Employee Already Exists", 400));
     }
 
-    const employee = new Employee()
-    employee.empPhone = empPhone
-    employee.empName = empName
-    employee.designation = designation
-    employee.empEmail = req.body?.empEmail
-    employee.empAddress = req.body?.empAddress
-    employee.showroom = req.body?.showroom
-    employee.empSalary = req.body?.empSalary
+    const employee = new Employee();
+    employee.empPhone = empPhone;
+    employee.empName = empName;
+    employee.designation = designation;
+    employee.empEmail = req.body?.empEmail;
+    employee.empAddress = req.body?.empAddress;
+    employee.empSalary = req.body?.empSalary;
 
-    await employee.save()
+    if (showroom) {
+      showroom.employees.push(employee);
+      await showroom.save();
+    }
 
-    res.status(201).json(employee)
+    await employee.save();
 
-}
+    res.status(201).json(employee);
+  } catch (e) {
+    console.log(e);
+    res.status(500).json(e.message);
+  }
+};
 
-export const getEmployee: ControllerFn = async (req, res, _next) => {
-    const showroom = await Showroom.findOne({
-        where: {
-            id: req.showroomId
-        }
-    })
-    if (showroom && req.showroomId) {
-        res.status(200).json(await Employee.find({where: {showroom: showroom.showroomName}}))
+export const getEmployee: ControllerFn = async (req, res, next) => {
+    let showroom: Showroom | null;
+
+    if (req.showroomId) {
+        showroom = await Showroom.findOne({ where: { id: req.showroomId } });
     } else {
-        res.status(200).json(await Employee.find())
+        showroom = await Showroom.findOne({ where: { showroomCode: "HO" } });
     }
+
+    if (!showroom) {
+        return next(new ErrorHandler("Showroom Not Found", 400));
+    }
+
+    res.status(200).json(showroom.employees)
 
 }
 

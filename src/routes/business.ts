@@ -5,24 +5,36 @@ import Business from "../entities/business";
 const businessRoutes = express.Router();
 
 businessRoutes.get('/', async (_req, res) => {
-    res.status(200).json(await Business.find())
+    const business = await Business.find()
+    res.status(200).json(business[0])
 })
 
-businessRoutes.patch('/:id', async (req, res, next) => {
-    const id = req.params.id;
+businessRoutes.post('/', async (req, res, _next) => {
+    const business = await Business.find()
 
-    const business = await Business.findOne({where: {id: Number(id)}})
+    if (business.length > 1) {
+        Object.assign(business[0], req.body)
+        await business[0].save()
 
-    console.log(req.body)
+        res.status(200).json(business[0])
+    } else {
+        const business = Business.create(req.body)
 
+        await business.save()
+        res.status(200).json(business)
+    }
+})
+businessRoutes.patch('/', async (req, res, next) => {
+
+    const business = await Business.find()
     if (!business) {
         return next(new ErrorHandler('Business not found', 404))
     }
-    Object.assign(business, req.body)
+    Object.assign(business[0], req.body)
 
-    await business.save()
+    await business[0].save()
 
-    res.status(200).json(business)
+    res.status(200).json(business[0])
 })
 
 export default businessRoutes

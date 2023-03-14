@@ -1,101 +1,120 @@
 import {
-    BaseEntity,
-    Column,
-    CreateDateColumn,
-    DeleteDateColumn,
-    Entity,
-    JoinTable,
-    ManyToMany,
-    ManyToOne,
-    PrimaryGeneratedColumn,
-    UpdateDateColumn
+  BaseEntity,
+  Column,
+  CreateDateColumn,
+  Entity,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from "typeorm";
-import {InvoiceStatus} from "../types";
+import { InvoiceStatus } from "../types";
 import Product from "./product";
 import Employee from "./employee";
 import Showroom from "./showroom";
 
-
 @Entity()
 export default class Invoice extends BaseEntity {
+  @PrimaryGeneratedColumn({ type: "bigint" })
+  id: number;
 
-    @PrimaryGeneratedColumn()
-    id: number;
+  @Column({
+    nullable: true,
+    default: InvoiceStatus.Paid,
+    enum: InvoiceStatus,
+    type: "enum",
+  })
+  invoiceStatus: InvoiceStatus;
 
-    @Column({
-        default: "000001", nullable: true
-    })
-    invoiceNo: string
+  @Column({ nullable: true, default: "Spark X Fashion Wear Limited" })
+  businessName: string;
 
-    @Column({nullable: true, default: InvoiceStatus.Paid, enum: InvoiceStatus, type: 'enum'})
-    invoiceStatus: InvoiceStatus
+  @Column({ nullable: true, default: "Dhaka, Dhaka, Bangladesh" })
+  businessAddress: string;
 
-    @Column({nullable: true, default: "Spark X Fashion Wear Limited"})
-    businessName: string
+  @Column({ nullable: true })
+  customerName: string;
 
-    @Column({nullable: true, default: "Dhaka, Dhaka, Bangladesh"})
-    businessAddress: string
+  @Column({ nullable: true })
+  customerMobile: string;
 
-    @Column({nullable: true})
-    customerName: string
+  @OneToMany(() => Product, (product) => product.invoice, {
+    cascade: true,
+    eager: true,
+  })
+  products: Product[];
 
-    @Column({nullable: true})
-    customerMobile: string
+  @Column({ nullable: true })
+  showroomName: string;
 
-    @ManyToMany(() => Product, product => product, {cascade: true, eager: true})
-    @JoinTable()
-    products: Product[]
+  @Column({ nullable: true })
+  showroomAddress: string;
 
-    @Column({nullable: true})
-    showroomName: string
+  @Column({ nullable: true })
+  showroomInvoiceCode: string;
 
-    @Column({nullable: true})
-    showroomAddress: string
+  @Column({ nullable: true })
+  showroomMobile: string;
 
-    @Column({nullable: true})
-    showroomInvoiceCode: string
+  @ManyToOne(() => Showroom, (sr) => sr.invoices, {
+    onDelete: "CASCADE",
+    onUpdate: "CASCADE",
+  })
+  showroom: Showroom;
 
-    @Column({nullable: true})
-    showroomMobile: string
+  @ManyToOne(() => Employee, (emp) => emp.sales, {
+    onDelete: "CASCADE",
+    onUpdate: "CASCADE",
+  })
+  employee: Employee;
 
-    @ManyToOne(() => Showroom, sr => sr.invoices, {
-        onDelete: 'CASCADE',
-        onUpdate: 'CASCADE',
-    })
-    showroomId: Showroom
+  @Column({ type: "float", nullable: true })
+  invoiceAmount: number;
 
-    @ManyToOne(() => Employee, emp => emp.sales, {onDelete: 'CASCADE', onUpdate: 'CASCADE'})
-    employee: Employee
+  @Column({ nullable: true, type: "float" })
+  paidAmount: number;
 
-    @Column({type: 'float', nullable: true})
-    invoiceAmount: number
+  @Column({ nullable: true, type: "float" })
+  dueAmount: number;
 
-    @Column({nullable: true, type: 'float'})
-    paidAmount: number
+  @Column({ nullable: true, type: "float" })
+  changeAmount: number;
 
-    @Column({nullable: true, type: 'float'})
-    dueAmount: number
+  @Column({ nullable: true, default: 0, type: "float" })
+  discountAmount: number;
 
-    @Column({nullable: true, type: 'float'})
-    changeAmount: number
+  @Column({ nullable: true, default: 0, type: "float" })
+  vat: number;
+  @Column({ nullable: true, type: "int" })
+  quantity: number;
 
-    @Column({nullable: true, default: 0, type: 'float'})
-    discountAmount: number
+  // @OneToOne(() => Returned, {
+  //   eager: true,
+  //   onDelete: "SET NULL",
+  //   onUpdate: "CASCADE",
+  //   cascade: true,
+  // })
+  // @JoinColumn()
+  // returned: Returned;
 
-    @Column({nullable: true, default: 0, type: 'float'})
-    vat: number
-    @Column({nullable: true})
-    quantity: number
+  @CreateDateColumn()
+  createdAt: Date;
 
+  @UpdateDateColumn()
+  updatedAt: Date;
 
-    @CreateDateColumn()
-    createdAt: Date
+  async returnProductFromInvoice(product: Product): Promise<void> {
+    const productFromInvoice = this.products.find((p) => p.id === product.id);
+    if (productFromInvoice) {
+      this.paidAmount = this.paidAmount - product.sellPriceAfterDiscount;
+      this.invoiceAmount = this.invoiceAmount - product.sellPriceAfterDiscount;
+      this.products = this.products.filter((p) => p.id !== product.id);
 
-
-    @UpdateDateColumn()
-    updatedAt: Date
-
-    @DeleteDateColumn()
-    deletedAt: Date
-
+      if (this.products.length < 1) {
+        await this.remove({ listeners: true, transaction: true });
+      } else {
+        await this.save();
+      }
+    }
+  }
 }
