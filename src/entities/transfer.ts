@@ -1,11 +1,11 @@
 import {
-    BaseEntity,
-    Column,
-    CreateDateColumn,
-    Entity,
-    OneToMany,
-    PrimaryGeneratedColumn,
-    UpdateDateColumn
+  BaseEntity,
+  Column,
+  CreateDateColumn,
+  Entity,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from "typeorm";
 import Product from "./product";
 
@@ -23,7 +23,7 @@ export default class TransferProduct extends BaseEntity {
     @Column()
     productCount: number
 
-    @Column()
+    @Column({nullable:true})
     transferredLot: string
 
     @OneToMany(() => Product, p => p.transferredHistory, {cascade: true, eager: true})

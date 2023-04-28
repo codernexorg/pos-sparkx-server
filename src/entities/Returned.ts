@@ -3,11 +3,13 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from "typeorm";
 import Product from "./product";
+import Showroom from "./showroom";
 
 @Entity()
 export default class Returned extends BaseEntity {
@@ -15,10 +17,13 @@ export default class Returned extends BaseEntity {
   id: number;
 
   @Column({ nullable: true })
-  note: string;
+  check: string;
 
   @Column({ nullable: true })
   amount: number;
+
+  @Column({ nullable: true })
+  invoiceNo: string;
 
   @Column()
   customerPhone: string;
@@ -34,6 +39,15 @@ export default class Returned extends BaseEntity {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @Column({ nullable: true })
+  salesDate: Date;
+
+  @ManyToOne(() => Showroom, (sr) => sr.returned, {
+    onUpdate: "CASCADE",
+    onDelete: "CASCADE",
+  })
+  showroom: Showroom;
 
   addReturn(product: Product) {
     if (this.products == null) {

@@ -36,8 +36,17 @@ export default class Employee extends BaseEntity {
   @Column({ nullable: true, default: 0 })
   empSalary: number;
 
-  @OneToMany(() => Product, (p) => p.employee, { eager: true, cascade: true })
+  @OneToMany(() => Product, (p) => p.employee, {
+    eager: true,
+    cascade: true,
+  })
   sales: Product[];
+
+  @OneToMany(() => Product, (p) => p.returnedEmployee, {
+    eager: true,
+    cascade: true,
+  })
+  returnSales: Product[];
 
   @Column({ nullable: true })
   joiningDate: Date;
@@ -65,13 +74,15 @@ export default class Employee extends BaseEntity {
 
     await this.save({ reload: true, listeners: true, transaction: true });
   }
-  async returnSale(product: Product): Promise<void> {
-    const productToReturn = this.sales.find(
-      (p) => p.itemCode === product.itemCode
-    );
-    if (productToReturn) {
-      this.sales = this.sales.filter((p) => p.id !== productToReturn.id);
-      await this.save({ transaction: true, listeners: true, reload: true });
+  returnSale(product: Product) {
+    if (this.returnSales == null) {
+      this.returnSales = new Array<Product>();
+    }
+    const productPurchased = this.sales.find((p) => p.id === product.id);
+    console.log(productPurchased);
+    if (productPurchased) {
+      this.sales = this.sales.filter((p) => p.id !== product.id);
+      this.returnSales.push(product);
     }
   }
 }

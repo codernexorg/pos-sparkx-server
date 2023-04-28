@@ -37,11 +37,10 @@ export enum UserRole {
 
 export enum ProductStatus {
   Hold = "Hold",
-  Return = "Return",
   Sold = "Sold",
-  Damaged = "Damaged",
   Lost = "Lost",
   Unsold = "Unsold",
+  Damaged = "Damaged",
 }
 
 export enum EmpDesignation {

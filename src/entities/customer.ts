@@ -32,9 +32,6 @@ export default class Customer extends BaseEntity {
   credit: number;
 
   @Column({ nullable: true, default: 0 })
-  due: number;
-
-  @Column({ nullable: true, default: 0 })
   paid: number;
 
   @OneToMany(() => Product, (iv) => iv.purchasedCustomer, {
@@ -83,7 +80,6 @@ export default class Customer extends BaseEntity {
         (p) => p.id !== product.id
       );
       this.returnedProducts.push(product);
-      console.log(this.returnedProducts);
     }
   }
 }

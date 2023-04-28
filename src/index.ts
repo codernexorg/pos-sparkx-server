@@ -14,37 +14,26 @@ import userRouter from "./routes/user";
 import warehouseRoutes from "./routes/warehouse";
 import dataSource from "./typeorm.config";
 import invoiceRoutes from "./routes/invoice";
-
 import { showRoomAccess } from "./middleware/showroom";
 import customerRoutes from "./routes/customer";
-import http from "http";
-import Server from "socket.io";
 import employeeRoutes from "./routes/employee";
 import taxRoutes from "./routes/tax";
 import seedRoutes from "./routes/seed";
 import businessRoutes from "./routes/business";
 import reports from "./routes/reports";
-import expense from "./routes/expense";
 import purchase from "./routes/purchase";
 import { getAudit } from "./controller/audit";
-import smsRoutes from "./routes/sms";
+import compression from "compression";
+import sms from "./routes/sms";
 
 const mount = async (app: Application) => {
   await dataSource.initialize();
-  const server = new http.Server(app);
-  const io = new Server.Server(server);
   const whiteList = [
-    "http://localhost:3002",
+    "http://sparkxfashion.com",
+    "https://sparkxfashion.com",
     "http://localhost:3000",
-    "http://127.0.0.1:5500",
-    "http://sparkxpos.btamsbd.com",
-    "https://sparkxpos.btamsbd.com",
-    "http://beta.sparkx.com.bd",
-    "https://beta.sparkx.com.bd",
-    "https://pos.islamicalo24.com",
-    "http://pos.islamicalo24.com",
   ];
-
+  app.use(compression());
   app.use(
     cors({
       origin: (origin, callback) => {
@@ -78,6 +67,7 @@ const mount = async (app: Application) => {
   app.use("/api/v1/auth", authRoute);
   app.use("/api/v1/product", isAuth, commonAuth, showRoomAccess, productRoutes);
   app.use("/api/v1/purchase", isAuth, commonAuth, isSuperAdmin, purchase);
+  app.use("/api/v1/sms", isAuth, commonAuth, sms);
 
   app.use(
     "/api/v1/supplier",
@@ -102,9 +92,9 @@ const mount = async (app: Application) => {
     showroomRoutes
   );
 
-  app.use("/api/v1/barcode", isAuth, commonAuth, showRoomAccess, barcodeRoutes);
+  app.use("/api/v1/barcode", isAuth, commonAuth, barcodeRoutes);
 
-  app.use("/api/v1/brands", isAuth, commonAuth, showRoomAccess, brandRoutes);
+  app.use("/api/v1/brands", isAuth, commonAuth, brandRoutes);
 
   app.use("/api/v1/invoice", isAuth, commonAuth, showRoomAccess, invoiceRoutes);
 
@@ -123,20 +113,15 @@ const mount = async (app: Application) => {
     employeeRoutes
   );
 
-  app.use("/api/v1/tax", isAuth, commonAuth, isSuperAdmin, taxRoutes);
-  app.use("/api/v1/business", isAuth, commonAuth, isSuperAdmin, businessRoutes);
+  app.use("/api/v1/tax", isAuth, commonAuth, taxRoutes);
+  app.use("/api/v1/business", isAuth, commonAuth, businessRoutes);
   app.use("/api/v1/db", seedRoutes);
   app.use("/api/v1/reports", isAuth, commonAuth, reports);
-  app.use("/api/v1/expense", isAuth, commonAuth, showRoomAccess, expense);
+  // app.use("/api/v1/expense", isAuth, commonAuth, showRoomAccess, expense);
   app.get("/api/v1/audit", isAuth, commonAuth, getAudit);
-  app.use("/api/v1/sms", isAuth, commonAuth, isSuperAdmin, smsRoutes);
   app.use(errorMiddleware);
 
-  io.on("connection", function (socket) {
-    console.log("client connected", socket);
-  });
-
-  server.listen(config.PORT, () => {
+  app.listen(config.PORT, () => {
     console.log(`Development Server Started on PORT: ${config.PORT}`);
   });
 };

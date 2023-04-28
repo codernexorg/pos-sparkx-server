@@ -1,4 +1,3 @@
-import { FindOptionsUtils } from "typeorm";
 import Customer from "../entities/customer";
 import Employee from "../entities/employee";
 import Invoice from "../entities/invoice";
@@ -9,426 +8,484 @@ import { ControllerFn, InvoiceStatus, ProductStatus } from "../types";
 import ErrorHandler from "../utils/errorHandler";
 
 export const createInvoice: ControllerFn = async (req, res, next) => {
-  const {
-    items,
-    subtotal,
-    customerPhone,
-    crmPhone,
-    discounts,
-    vat,
-    paidAmount,
-    discountTk,
-    payable,
-    employees,
-  } = req.body as {
-    items: Product[];
-    subtotal: number;
-    customerPhone: string;
-    crmPhone: string;
-    discounts: number[];
-    vat: number;
-    paidAmount: number;
-    discountTk: number[];
-    payable: number[];
-    employees: string[];
-  };
+  try {
+    const {
+      items,
+      subtotal,
+      customerPhone,
+      crmPhone,
+      discounts,
+      vat,
+      paidAmount,
+      discountTk,
+      payable,
+      employees,
+    } = req.body as {
+      items: Product[];
+      subtotal: number;
+      customerPhone: string;
+      crmPhone: string;
+      discounts: number[];
+      vat: number;
+      paidAmount: number;
+      discountTk: number[];
+      payable: number[];
+      employees: string[];
+    };
 
-  if (!items || !items.length) {
-    return next(new ErrorHandler("No product to sell", 404));
-  }
+    //Checking if there any product to sell
 
-  if (!crmPhone) {
-    return next(new ErrorHandler("Please Select A CRM For This Customer", 404));
-  }
+    if (!items || !items.length) {
+      return next(new ErrorHandler("No product to sell", 404));
+    }
 
-  const employee = await Employee.findOne({ where: { empPhone: crmPhone } });
+    //Checking if employee selected for all products coming to sell
 
-  if (!employee) {
-    return next(new ErrorHandler("No Employee Found", 404));
-  }
-
-  let showroom: Showroom | null = null;
-
-  if (req.showroomId) {
-    showroom = await Showroom.findOne({
-      where: { id: req.showroomId },
-      relations: { invoices: true },
-    });
-  } else {
-    showroom = await Showroom.findOne({
-      where: { showroomCode: "HO" },
-      relations: { invoices: true },
-    });
-  }
-
-  const customer = await Customer.findOne({
-    where: { customerPhone: customerPhone },
-    relations: { purchasedProducts: true },
-  });
-  if (!customer) {
-    return next(new ErrorHandler("No Customer Found", 404));
-  }
-
-  if (!customer.crm && !crmPhone) {
-    return next(new ErrorHandler("Please Select A CRM For This Customer", 404));
-  }
-
-  const netAmount =
-    payable.reduce((a, b) => a + b) + Math.round((subtotal / 100) * vat);
-  const discountAmount = discountTk.reduce((a, b) => a + b);
-
-  if (req.body.invoiceStatus !== "Hold") {
-    if (!customer && netAmount > Number(req.body?.paidAmount)) {
+    if (employees.length !== items.length) {
       return next(
-        new ErrorHandler("Due Only Possible With Registered Customer", 404)
+        new ErrorHandler("Please Select Employee For All Products", 400)
       );
     }
-  }
 
-  const products: Product[] = [];
+    //Checking if There Any Customer Relation Manager
 
-  for (let i = 0; i < items.length; i++) {
-    let product;
-    if (showroom) {
-      product = await Product.findOne({
-        where: {
-          itemCode: items[i].itemCode,
-          showroomName: showroom.showroomName,
-        },
-      });
-    } else
-      product = await Product.findOne({
-        where: { itemCode: items[i].itemCode },
-      });
-    if (product) {
-      products.push(product);
+    if (!crmPhone) {
+      return next(
+        new ErrorHandler("Please Select A CRM For This Customer", 404)
+      );
     }
-  }
 
-  if (req.body?.invoiceStatus === "Hold") {
-    const isHold = products.every((item) => item.sellingStatus === "Hold");
-    if (isHold) {
-      return next(new ErrorHandler("Products Already In Hold", 400));
+    // Finding The CRM For Customer
+
+    const employee = await dataSource
+      .getRepository(Employee)
+      .createQueryBuilder("emp")
+      .where("emp.empPhone=:crmPhone", { crmPhone })
+      .getOne();
+
+    // Checking If Employee Exist On Database
+
+    if (!employee) {
+      return next(new ErrorHandler("No Employee Found", 404));
     }
-  }
 
-  if (employees.length !== products.length) {
-    return next(
-      new ErrorHandler("Please Select Employee For All Products", 400)
-    );
-  }
+    // Finding The Showroom For Sells
 
-  if (products.length === 0) {
-    return next(new ErrorHandler("No unsold items found", 404));
-  } else {
-    for (let i = 0; i < products.length; i++) {
-      for (let i = 0; i < products.length; i++) {
-        products[i].sellingStatus = ProductStatus.Sold;
-        const discount = Math.round(
-          (discounts[i] * 100) / products[i].sellPrice
-        );
-        const sellPriceAfterDiscount = Math.round(
-          Number(products[i].sellPrice - discountTk[i])
-        );
-        if (req.body.invoiceStatus === "Hold") {
-          Object.assign(products[i], {
-            sellingStatus: ProductStatus.Hold,
-            discount,
-            sellPriceAfterDiscount: sellPriceAfterDiscount,
-          });
-        } else {
-          Object.assign(products[i], {
-            sellingStatus: "Sold",
-            discount,
-            sellPriceAfterDiscount: sellPriceAfterDiscount,
-          });
-        }
+    const showroom =
+      (await dataSource
+        .getRepository(Showroom)
+        .createQueryBuilder("showroom")
+        .leftJoinAndSelect("showroom.invoices", "invoices")
+        .where("showroom.id=:id", { id: req.showroomId })
+        .getOne()) ||
+      (await dataSource
+        .getRepository(Showroom)
+        .createQueryBuilder("showroom")
+        .leftJoinAndSelect("showroom.invoices", "invoices")
+        .where("showroom.showroomCode='HO'")
+        .getOne());
 
-        await products[i].save();
+    // Finding the customer
+
+    const customer = await dataSource
+      .getRepository(Customer)
+      .createQueryBuilder("customer")
+      .leftJoinAndSelect("customer.purchasedProducts", "purchasedProducts")
+      .where("customer.customerPhone=:customerMobile", {
+        customerMobile: customerPhone,
+      })
+      .getOne();
+
+    // Checking If Customer Exist On Database
+    if (!customer) {
+      return next(new ErrorHandler("No Customer Found", 404));
+    }
+
+    // Checking If Customer Have CRM Or Not
+    if (!customer.crm && !crmPhone) {
+      return next(
+        new ErrorHandler("Please Select A CRM For This Customer", 404)
+      );
+    }
+
+    // Calculating Net Amount With Tax
+
+    const netAmount =
+      payable.reduce((a, b) => a + b) + Math.round((subtotal / 100) * vat);
+
+    // Calculating Discount Amount
+    const discountAmount = discountTk.reduce((a, b) => a + b);
+
+    if (paidAmount < netAmount) {
+      return next(new ErrorHandler("Please Provide Amount Correctly", 404));
+    }
+
+    // Initiating Product To Sell
+
+    const products = await dataSource
+      .getRepository(Product)
+      .createQueryBuilder("product")
+      .where("product.itemCode IN (:...productCodes)", {
+        productCodes: items.map((item) => item.itemCode),
+      })
+      .getMany();
+
+    // Checking If The Product Already in Hold
+
+    if (req.body?.invoiceStatus === "Hold") {
+      const isHold = products.every((item) => item.sellingStatus === "Hold");
+      if (isHold) {
+        return next(new ErrorHandler("Products Already In Hold", 400));
       }
     }
-  }
 
-  const invoice = new Invoice();
-
-  invoice.products = products;
-  invoice.businessName = "SPARKX Lifestyle";
-  if (req.body.invoiceStatus === "Hold") {
-    invoice.invoiceStatus = InvoiceStatus.Hold;
-  } else {
-    invoice.invoiceStatus =
-      netAmount <= paidAmount ? InvoiceStatus.Paid : InvoiceStatus.Due;
-  }
-  invoice.invoiceAmount = Number(netAmount);
-  invoice.paidAmount = Number(paidAmount);
-  invoice.changeAmount = Number(
-    netAmount <= paidAmount ? paidAmount - netAmount : 0
-  );
-  invoice.dueAmount = Number(
-    netAmount > paidAmount ? netAmount - paidAmount : 0
-  );
-  invoice.customerName = customer.customerName;
-  invoice.customerMobile = customer.customerPhone;
-  invoice.quantity = products.length;
-  invoice.discountAmount = Number(discountAmount);
-  invoice.vat = vat;
-
-  if (showroom) {
-    invoice.showroomInvoiceCode =
-      showroom.showroomCode +
-      (showroom?.invoices.length + 1).toString().padStart(8, "0");
-    invoice.showroomAddress = showroom.showroomAddress;
-    invoice.showroomMobile = showroom.showroomMobile;
-    invoice.showroomName = showroom.showroomName;
-    showroom.invoices.push(invoice);
-    await showroom.save();
-  }
-  if (customer && req.body.invoiceStatus !== "Hold") {
-    products.every(async (product) => {
-      customer.addPurchase(product);
-    });
-    customer.due = Math.round(customer.due + invoice.dueAmount);
-    customer.paid = Math.round(customer.paid + invoice.paidAmount);
-    customer.crm = employee.empPhone;
-    await customer.save();
-    console.log(customer);
-  }
-
-  products.every(async (product, i) => {
-    const emp = await Employee.findOne({ where: { empPhone: employees[i] } });
-
-    if (emp) {
-      await emp.addSale(product);
+    if (products.length === 0) {
+      return next(new ErrorHandler("No unsold items found", 404));
     }
-  });
 
-  await invoice.save();
-  res.status(200).json(invoice);
+    for (const [i, product] of products.entries()) {
+      const sellPriceAfterDiscount = Math.round(
+        Number(product.sellPrice - discountTk[i])
+      );
+      product.sellingStatus =
+        req.body.invoiceStatus === "Hold"
+          ? ProductStatus.Hold
+          : ProductStatus.Sold;
+      product.discount = discounts[i];
+      product.sellPriceAfterDiscount = sellPriceAfterDiscount;
+
+      await product.save();
+    }
+
+    //Initiating Invoice
+
+    const invoice = new Invoice();
+
+    invoice.products = products;
+    invoice.businessName = "SPARKX Lifestyle";
+    if (req.body.invoiceStatus === "Hold") {
+      invoice.invoiceStatus = InvoiceStatus.Hold;
+    } else {
+      invoice.invoiceStatus = InvoiceStatus.Paid;
+    }
+    invoice.invoiceAmount = Number(netAmount);
+    invoice.paidAmount = Number(paidAmount);
+    invoice.changeAmount = Number(
+      netAmount <= paidAmount ? paidAmount - netAmount : 0
+    );
+    invoice.customerName = customer.customerName;
+    invoice.customerMobile = customer.customerPhone;
+    invoice.quantity = products.length;
+    invoice.discountAmount = Number(discountAmount);
+    invoice.withoutTax = subtotal;
+    invoice.withTax = subtotal + Math.round((subtotal / 100) * vat);
+
+    invoice.vat = vat;
+
+    //Updating invoice & Pushing into showroom
+
+    if (showroom) {
+      invoice.showroomInvoiceCode =
+        showroom.showroomCode +
+        (showroom.invoices.length + 1).toString().padStart(8, "0");
+      invoice.showroomAddress = showroom.showroomAddress;
+      invoice.showroomMobile = showroom.showroomMobile;
+      invoice.showroomName = showroom.showroomName;
+      showroom.invoices.push(invoice);
+      await showroom.save();
+    }
+
+    //Pushing products into Customer Purchase
+    if (customer && req.body.invoiceStatus !== "Hold") {
+      products.every(async (product) => {
+        customer.addPurchase(product);
+      });
+      customer.paid = Math.round(customer.paid + invoice.paidAmount);
+      customer.crm = employee.empPhone;
+      await customer.save();
+    }
+
+    // Pushing Products Into Employee Sales List
+
+    if (req.body.invoiceStatus !== "Hold") {
+      products.every(async (product, i) => {
+        const emp = await dataSource
+          .getRepository(Employee)
+          .createQueryBuilder("emp")
+          .leftJoinAndSelect("emp.sales", "sales")
+          .where("emp.empPhone=:empPhone", { empPhone: employees[i] })
+          .getOne();
+
+        if (emp) {
+          await emp.addSale(product);
+        }
+      });
+    }
+
+    await invoice.save();
+    res.status(200).json(invoice);
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
 };
 
-// export const updateInvoice: ControllerFn = async (req, res, next) => {
-//   try {
-//     const { id } = req.params;
-//     const {
-//       items,
-//       subtotal,
-//       customerPhone,
-//       crmId,
-//       discounts,
-//       vat,
-//       paidAmount,
-//       discountTk,
-//       payable,
-//       employees,
-//     } = req.body as {
-//       items: Product[];
-//       subtotal: number;
-//       customerPhone: string;
-//       crmId: number;
-//       discounts: number[];
-//       vat: number;
-//       paidAmount: number;
-//       discountTk: number[];
-//       payable: number[];
-//       employees: string[];
-//     };
-//
-//     const invoice = await Invoice.findOne({
-//       where: {
-//         id,
-//       },
-//     });
-//     if (!invoice) {
-//       return next(new ErrorHandler("No such invoice found", 404));
-//     }
-//
-//     if (!items || !items.length) {
-//       return next(new ErrorHandler("No product to sell", 404));
-//     }
-//
-//     if (!crmId) {
-//       return next(
-//         new ErrorHandler("Please Select A CRM For This Customer", 404)
-//       );
-//     }
-//
-//     const employee = await Employee.findOne({ where: { id: crmId } });
-//
-//     if (!employee) {
-//       return next(new ErrorHandler("No Employee Found On Database", 404));
-//     }
-//
-//     let showroom: Showroom | null = null;
-//
-//     if (req.showroomId) {
-//       showroom = await Showroom.findOne({
-//         where: { id: req.showroomId },
-//         relations: { invoices: true },
-//       });
-//     } else {
-//       showroom = await Showroom.findOne({ where: { showroomCode: "HO" } });
-//     }
-//
-//     if (!showroom) {
-//       return next(new ErrorHandler("No Showroom Found To Sell For", 404));
-//     }
-//
-//     if(!employees.length){
-//       return next(new ErrorHandler("No Employees Found To Sell For", 404));
-//     }
-//
-//     //Checking If Customer Exist
-//
-//     const customer = await Customer.findOne({
-//       where: { customerPhone: customerPhone },
-//     });
-//
-//     if (!customer) {
-//       return next(new ErrorHandler("No Customer Found", 404));
-//     }
-//
-//     if (!customer.crm && !crmId) {
-//       return next(
-//         new ErrorHandler("Please Select A CRM For This Customer", 404)
-//       );
-//     } else {
-//       customer.crm = employee.empName;
-//     }
-//
-//     //Generating Subtotal & Discount
-//     const netAmount =
-//       payable.reduce((a, b) => a + b) + Math.round((subtotal / 100) * vat);
-//     const discountAmount = discountTk.reduce((a: number, b: number) => a + b);
-//
-//     if (!customer && netAmount > Number(req.body?.paidAmount)) {
-//       return next(
-//         new ErrorHandler("Due Only Possible With Registered Customer", 404)
-//       );
-//     }
-//
-//     const products: Product[] = [];
-//
-//     if (req.body?.invoiceStatus === InvoiceStatus.Hold) {
-//       return next(new ErrorHandler("Invoice Status Already In Hold", 400));
-//     }
-//
-//     for (let i = 0; i < items.length; i++) {
-//       let product;
-//       if (showroom) {
-//         product = await Product.findOne({
-//           where: {
-//             itemCode: items[i].itemCode,
-//             showroomName: showroom.showroomName,
-//           },
-//         });
-//       } else
-//         product = await Product.findOne({
-//           where: { itemCode: items[i].itemCode },
-//         });
-//
-//       if (product) {
-//         products.push(product);
-//       }
-//     }
-//
-//     if (products.length === 0) {
-//       return next(new ErrorHandler("No unsold items found", 404));
-//     } else {
-//       for (let i = 0; i < products.length; i++) {
-//         products[i].sellingStatus = ProductStatus.Sold;
-//         const discount = Math.round(
-//           (discounts[i] * 100) / products[i].sellPrice
-//         );
-//         const sellPriceAfterDiscount = products[i].sellPrice - discountTk[i];
-//         Object.assign(products[i], {
-//           discount,
-//           sellPriceAfterDiscount: sellPriceAfterDiscount,
-//         });
-//         await products[i].save();
-//
-//         const employee = await Employee.findOne({where:{empPhone:employees[i]}})
-//
-//         if(!employee?.sales.includes(products[i])){
-//           employee?.sales.push(products[i])
-//           await employee?.save();
-//         }
-//       }
-//     }
-//
-//     invoice.products = products;
-//     invoice.businessName = "SPARKX Lifestyle";
-//
-//     invoice.invoiceStatus =
-//       netAmount <= paidAmount ? InvoiceStatus.Paid : InvoiceStatus.Due;
-//     invoice.invoiceAmount = Number(netAmount);
-//     invoice.paidAmount = Number(paidAmount);
-//     invoice.changeAmount = Math.round(
-//       Number(netAmount <= paidAmount ? paidAmount - netAmount : 0)
-//     );
-//     invoice.dueAmount = Math.round(
-//       Number(netAmount > paidAmount ? netAmount - paidAmount : 0)
-//     );
-//     invoice.customerName = customer.customerName;
-//     invoice.customerMobile = customer.customerPhone;
-//
-//     invoice.quantity = products.length;
-//     invoice.discountAmount = Number(discountAmount);
-//     invoice.vat = vat;
-//
-//     customer.due = Math.round(customer.due + invoice.dueAmount);
-//     customer.paid = Math.round(customer.paid + invoice.paidAmount);
-//     customer.invoices.push(invoice);
-//
-//     await customer.save();
-//     await invoice.save();
-//     res.status(200).json(invoice);
-//   } catch (e) {
-//     res.status(500).json({ success: false, message: e.message });
-//   }
-// };
+export const updateInvoice: ControllerFn = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const invoice = await Invoice.findOne({ where: { id } });
+
+    if (!invoice) {
+      return next(new ErrorHandler("Invoice not found", 404));
+    }
+    const {
+      items,
+      subtotal,
+      customerPhone,
+      crmPhone,
+      discounts,
+      vat,
+      paidAmount,
+      discountTk,
+      payable,
+      employees,
+    } = req.body as {
+      items: Product[];
+      subtotal: number;
+      customerPhone: string;
+      crmPhone: string;
+      discounts: number[];
+      vat: number;
+      paidAmount: number;
+      discountTk: number[];
+      payable: number[];
+      employees: string[];
+    };
+
+    if (!items || !items.length) {
+      return next(new ErrorHandler("No product to sell", 404));
+    }
+
+    //Finding Showrooms
+    const showroom =
+      (await dataSource
+        .getRepository(Showroom)
+        .createQueryBuilder("showroom")
+        .leftJoinAndSelect("showroom.invoices", "invoices")
+        .where("showroom.id=:id", { id: req.showroomId })
+        .getOne()) ||
+      (await dataSource
+        .getRepository(Showroom)
+        .createQueryBuilder("showroom")
+        .leftJoinAndSelect("showroom.invoices", "invoices")
+        .where("showroom.showroomCode='HO'")
+        .getOne());
+
+    //Finding The Customer
+
+    const customer = await dataSource
+      .getRepository(Customer)
+      .createQueryBuilder("customer")
+      .leftJoinAndSelect("customer.purchasedProducts", "purchasedProducts")
+      .where("customer.customerPhone=:customerMobile", {
+        customerMobile: customerPhone,
+      })
+      .getOne();
+    if (!customer) {
+      return next(new ErrorHandler("No Customer Found", 404));
+    }
+
+    if (!customer.crm && !crmPhone) {
+      return next(
+        new ErrorHandler("Please Select A CRM For This Customer", 404)
+      );
+    }
+
+    //Finding The CRM
+
+    const employee = await dataSource
+      .getRepository(Employee)
+      .createQueryBuilder("emp")
+      .where("emp.empPhone=:crmPhone", { crmPhone })
+      .getOne();
+
+    if (!employee) {
+      return next(new ErrorHandler("No Employee Found", 404));
+    }
+
+    const netAmount =
+      payable.reduce((a, b) => a + b) + Math.round((subtotal / 100) * vat);
+    const discountAmount = discountTk.reduce((a, b) => a + b);
+
+    if (paidAmount < netAmount) {
+      return next(new ErrorHandler("Please Provide Correct Amount", 404));
+    }
+
+    const products = await dataSource
+      .getRepository(Product)
+      .createQueryBuilder("product")
+      .where("product.itemCode IN (:...productCodes)", {
+        productCodes: items.map((item) => item.itemCode),
+      })
+      .getMany();
+
+    if (req.body?.invoiceStatus === "Hold") {
+      const isHold = products.every((item) => item.sellingStatus === "Hold");
+      if (isHold) {
+        return next(new ErrorHandler("Products Already In Hold", 400));
+      }
+    }
+
+    if (employees.length !== products.length) {
+      return next(
+        new ErrorHandler("Please Select Employee For All Products", 400)
+      );
+    }
+
+    if (products.length === 0) {
+      return next(new ErrorHandler("No unsold items found", 404));
+    }
+    for (const [i, product] of products.entries()) {
+      const sellPriceAfterDiscount = Math.round(
+          Number(product.sellPrice - discountTk[i])
+      );
+      product.sellingStatus =
+          req.body.invoiceStatus === "Hold"
+              ? ProductStatus.Hold
+              : ProductStatus.Sold;
+      product.discount = discounts[i];
+      product.sellPriceAfterDiscount = sellPriceAfterDiscount;
+
+      await product.save();
+    }
+
+    invoice.products = products;
+    invoice.businessName = "SPARKX Lifestyle";
+    if (req.body.invoiceStatus === "Hold") {
+      invoice.invoiceStatus = InvoiceStatus.Hold;
+    } else {
+      invoice.invoiceStatus = InvoiceStatus.Paid;
+    }
+    invoice.invoiceAmount = Number(netAmount);
+    invoice.paidAmount = Number(paidAmount);
+    invoice.changeAmount = Number(
+      netAmount <= paidAmount ? paidAmount - netAmount : 0
+    );
+    invoice.customerName = customer.customerName;
+    invoice.customerMobile = customer.customerPhone;
+    invoice.quantity = products.length;
+    invoice.discountAmount = Number(discountAmount);
+    invoice.withoutTax = subtotal;
+    invoice.withTax = subtotal + Math.round((subtotal / 100) * vat);
+    invoice.vat = vat;
+
+    if (showroom) {
+      invoice.showroomInvoiceCode =
+        showroom.showroomCode +
+        (showroom.invoices.length + 1).toString().padStart(8, "0");
+      invoice.showroomAddress = showroom.showroomAddress;
+      invoice.showroomMobile = showroom.showroomMobile;
+      invoice.showroomName = showroom.showroomName;
+      showroom.invoices.push(invoice);
+      await showroom.save();
+    }
+    if (customer) {
+      products.every(async (product) => {
+        customer.addPurchase(product);
+      });
+      customer.paid = Math.round(customer.paid + invoice.paidAmount);
+      customer.crm = employee.empPhone;
+      await customer.save();
+    }
+
+    products.every(async (product, i) => {
+      const emp = await dataSource
+        .getRepository(Employee)
+        .createQueryBuilder("emp")
+        .leftJoinAndSelect("emp.sales", "sales")
+        .where("emp.empPhone=:empPhone", { empPhone: employees[i] })
+        .getOne();
+
+      if (emp) {
+        await emp.addSale(product);
+      }
+    });
+
+    await invoice.save();
+    res.status(200).json(invoice);
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+};
 
 export const getInvoices: ControllerFn = async (req, res, _next) => {
-  const showroom = await Showroom.findOne({ where: { id: req.showroomId } });
   const { from_date, to_date, showroom_name } = req.query as {
     from_date: string;
     to_date: string;
     showroom_name: string;
   };
 
-  if (showroom && req.showroomId) {
-    const repository = dataSource.getRepository(Invoice);
-    const qb = repository
-      .createQueryBuilder('invoice')
-      .where('invoice.showroomName = :showroomName', {
-        showroomName: showroom.showroomName
+  let qb = dataSource
+    .getRepository(Invoice)
+    .createQueryBuilder("invoice")
+    .leftJoinAndSelect("invoice.products", "products")
+    .leftJoinAndSelect("products.employee", "employee");
+
+  if (req.showroomId) {
+    const showroom = await dataSource
+      .getRepository(Showroom)
+      .createQueryBuilder("showroom")
+      .where("showroom.id=:id", { id: req.showroomId })
+      .getOne();
+    if (showroom) {
+      qb = qb.where("invoice.showroomName = :showroomName", {
+        showroomName: showroom.showroomName,
       });
-    FindOptionsUtils.joinEagerRelations(qb, qb.alias, repository.metadata);
-    if (from_date && to_date) {
-      qb.where('invoice.createdAt BETWEEN :from_date AND :to_date', {
-        from_date: new Date(from_date),
-        to_date: new Date(to_date)
-      });
     }
-
-    const invoices = await qb.getMany();
-    res.status(200).json(invoices);
-  } else {
-    const repository = dataSource.getRepository(Invoice);
-    const qb = repository.createQueryBuilder('invoice');
-
-    FindOptionsUtils.joinEagerRelations(qb, qb.alias, repository.metadata);
-    if (from_date && to_date) {
-      await qb
-        .where('Date(invoice.createdAt)>= :from_date', { from_date })
-        .andWhere('Date(invoice.createdAt) <= :to_date', { to_date });
-    }
-    if (showroom_name) {
-      qb.where('invoice.showroomName = :showroom_name', { showroom_name })
-        .andWhere('Date(invoice.createdAt)>= :from_date', { from_date })
-        .andWhere('Date(invoice.createdAt) <= :to_date', { to_date });
-    }
-
-    const invoices = await qb.getMany();
-    res.status(200).json(invoices);
   }
+
+  if (from_date && to_date) {
+    qb = qb
+      .where("DATE(invoice.createdAt)>=:from_date", {
+        from_date,
+      })
+      .andWhere("DATE(invoice.createdAt) <=:to_date", {
+        to_date,
+      });
+  }
+  if (showroom_name) {
+    qb.andWhere("invoice.showroomName = :showroom_name", { showroom_name });
+  }
+
+  const invoices = await qb.getMany();
+
+  res.status(200).json(invoices);
+};
+
+export const resetHoldInvoice: ControllerFn = async (req, res, next) => {
+  const { id } = req.params;
+
+  const invoice = await dataSource
+    .getRepository(Invoice)
+    .createQueryBuilder("invoice")
+    .leftJoinAndSelect("invoice.products", "products")
+    .where("invoice.id=:id", { id })
+    .getOne();
+  
+  if(!invoice){
+    return next(new ErrorHandler('Invoice not found',404))
+  }
+  invoice.invoiceAmount=0
+  invoice.paidAmount=0;
+
+  
+  
+  for(const product of invoice.products){
+    product.sellingStatus=ProductStatus.Unsold
+    await product.save()
+  }
+
+  await invoice.save()
+  res.status(200).json(invoice)
+  
 };

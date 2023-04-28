@@ -12,6 +12,7 @@ import { InvoiceStatus } from "../types";
 import Product from "./product";
 import Employee from "./employee";
 import Showroom from "./showroom";
+import { filter, find } from "underscore";
 
 @Entity()
 export default class Invoice extends BaseEntity {
@@ -71,12 +72,17 @@ export default class Invoice extends BaseEntity {
   @Column({ type: "float", nullable: true })
   invoiceAmount: number;
 
+  @Column({ type: "float", nullable: true })
+  netAmount: number;
+
+  @Column({ type: "float", nullable: true })
+  withoutTax: number;
+
+  @Column({ type: "float", nullable: true })
+  withTax: number;
+
   @Column({ nullable: true, type: "float" })
   paidAmount: number;
-
-  @Column({ nullable: true, type: "float" })
-  dueAmount: number;
-
   @Column({ nullable: true, type: "float" })
   changeAmount: number;
 
@@ -103,18 +109,13 @@ export default class Invoice extends BaseEntity {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  async returnProductFromInvoice(product: Product): Promise<void> {
-    const productFromInvoice = this.products.find((p) => p.id === product.id);
+  returnProductFromInvoice(product: Product): void {
+    const productFromInvoice = find(this.products, (p) => p.id === product.id);
     if (productFromInvoice) {
-      this.paidAmount = this.paidAmount - product.sellPriceAfterDiscount;
-      this.invoiceAmount = this.invoiceAmount - product.sellPriceAfterDiscount;
-      this.products = this.products.filter((p) => p.id !== product.id);
-
-      if (this.products.length < 1) {
-        await this.remove({ listeners: true, transaction: true });
-      } else {
-        await this.save();
-      }
+      this.products = filter(
+        this.products,
+        (p) => p.id !== productFromInvoice.id
+      );
     }
   }
 }

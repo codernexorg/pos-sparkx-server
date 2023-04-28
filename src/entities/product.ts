@@ -36,7 +36,7 @@ export default class Product extends BaseEntity {
   @Column({ nullable: true })
   invoiceDate: Date;
 
-  @Column()
+  @Column({ nullable: true })
   lotNumber: string;
 
   @Column({ nullable: true })
@@ -45,7 +45,7 @@ export default class Product extends BaseEntity {
   @Column({ nullable: true })
   supplierName: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, default: 1 })
   totalItem: number;
 
   @Column({ nullable: true })
@@ -141,13 +141,23 @@ export default class Product extends BaseEntity {
   purchasedCustomer: Customer;
 
   @ManyToOne(() => Employee, (emp) => emp.sales, {
+    onUpdate: "CASCADE",
+    onDelete: "SET NULL",
+  })
+  employee: Employee;
+
+  @ManyToOne(() => Employee, (emp) => emp.returnSales, {
     onDelete: "SET NULL",
     onUpdate: "CASCADE",
   })
-  employee: Employee;
+  returnedEmployee: Employee;
+
+  @Column({ type: "boolean", default: false })
+  tagless: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ nullable: true })
   updatedAt: Date;
 }

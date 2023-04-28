@@ -1,16 +1,22 @@
-import Showroom from '../entities/showroom';
-import { ControllerFn, UserRole } from '../types';
-import ErrorHandler from '../utils/errorHandler';
+import Showroom from "../entities/showroom";
+import { ControllerFn, UserRole } from "../types";
+import ErrorHandler from "../utils/errorHandler";
+import dataSource from "../typeorm.config";
 
 export const showRoomAccess: ControllerFn = async (req, _res, next) => {
   const user = req.user;
   if (!user) {
-    return next(new ErrorHandler('Unauthorized User', 401));
+    return next(new ErrorHandler("Unauthorized User", 401));
   }
-  const showroom = await Showroom.findOne({
-    where: { showroomName: user.assignedShowroom }
-  });
-  if (user.assignedShowroom === 'All' && user.role.includes(UserRole.SA)) {
+  const showroom = await dataSource
+    .getRepository(Showroom)
+    .createQueryBuilder("showroom")
+    .where("showroom.showroomName=:showroomName", {
+      showroomName: user.assignedShowroom,
+    })
+    .getOne();
+
+  if (user.assignedShowroom === "All" && user.role.includes(UserRole.SA)) {
     next();
   } else if (
     (showroom && user.role.includes(UserRole.SO)) ||

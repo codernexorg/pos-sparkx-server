@@ -1,8 +1,9 @@
 import express from "express";
-import {sendSms} from "../controller/sms";
+import { sendSingleSms } from "../controller/sms";
 
 const smsRoutes = express.Router();
 
-smsRoutes.post('/send', sendSms)
+smsRoutes.post('/',sendSingleSms)
 
-export default smsRoutes;
+
+export default smsRoutes

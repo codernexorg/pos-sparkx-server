@@ -84,8 +84,6 @@ export const createExpense: ControllerFn = async (req, res, next) => {
   payment.paymentType = PaymentType.Credit;
   await payment.save();
   if (showroom) {
-    showroom.accounts.accountBalance -= payment.amount;
-    showroom.accounts.payments.push(payment);
     await showroom.save();
   }
 

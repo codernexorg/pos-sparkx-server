@@ -1,28 +1,45 @@
-import {ControllerFn} from "../types";
-import ErrorHandler from "../utils/errorHandler";
-import Business from "../entities/business";
+import * as http from "http";
+import * as querystring from "querystring";
+import { ControllerFn } from "../types";
 
-export const sendSms: ControllerFn = async (req, res, next) => {
+export const sendSingleSms: ControllerFn = async (request, response) => {
+  try {
+    const postData = querystring.stringify({
+      token: "9a30889b4b8e33de603208c76386d896",
+      to: request.body?.numbers,
+      message: request.body?.message,
+    });
 
-    const {customers, message} = req.body as { customers: string[], message: string };
+    const options = {
+      hostname: "api.greenweb.com.bd",
+      path: "/api.php",
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Content-Length": postData.length,
+      },
+    };
 
-    if (!customers.length) {
-        return next(new ErrorHandler('No customers found', 400));
-    }
-    if (!message.length) {
-        return next(new ErrorHandler('No message found', 400));
-    }
-    const business = await Business.find()
+    const req = http.request(options, function (res) {
+      res.setEncoding("utf8");
 
-    if (!business.length) {
-        return next(new ErrorHandler('SomeThing Went Wrong', 400))
-    }
-    try {
-        customers.forEach((number) => console.log(number))
-        res.status(200).json('Message Send')
-    } catch (err) {
-        res.status(200).json({
-            success: false, message: err.message
-        })
-    }
-}
+      res.on("data", function (chunk) {
+        console.log("BODY:", chunk);
+      });
+
+      res.on("end", function () {});
+    });
+
+    req.on("error", function (e) {
+      console.log("Problem with request:", e.message);
+    });
+
+    req.write(postData);
+    req.end();
+
+    response.status(200).json({ message: "SMS Send Successfully" });
+  } catch (e) {
+    response.status(400).json({ message: e.message });
+  }
+};
+

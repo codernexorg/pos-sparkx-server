@@ -3,6 +3,7 @@ import { ControllerFn } from "../types";
 import ErrorHandler from "../utils/errorHandler";
 import Employee from "../entities/employee";
 import Showroom from "../entities/showroom";
+import dataSource from "../typeorm.config";
 
 export const createEmp: ControllerFn = async (req, res, next) => {
   try {
@@ -51,46 +52,70 @@ export const createEmp: ControllerFn = async (req, res, next) => {
   }
 };
 
-export const getEmployee: ControllerFn = async (req, res, next) => {
-    let showroom: Showroom | null;
+export const getEmployee: ControllerFn = async (req, res, _next) => {
+  const showroom = await dataSource
+    .getRepository(Showroom)
+    .createQueryBuilder("showroom")
+    .leftJoinAndSelect("showroom.employees", "employees")
+    .leftJoinAndSelect("employees.sales", "sales")
+      .leftJoinAndSelect("employees.returnSales", "returnSales")
+    .where("showroom.id=:id", { id: req.showroomId })
+    .getOne();
 
-    if (req.showroomId) {
-        showroom = await Showroom.findOne({ where: { id: req.showroomId } });
-    } else {
-        showroom = await Showroom.findOne({ where: { showroomCode: "HO" } });
-    }
+  const employee =
+    showroom?.employees ||
+    (await dataSource
+      .getRepository(Employee)
+      .createQueryBuilder("employee")
+      .leftJoinAndSelect("employee.sales", "sales")
+        .leftJoinAndSelect("employee.returnSales", "returnSales")
+      .getMany());
 
-    if (!showroom) {
-        return next(new ErrorHandler("Showroom Not Found", 400));
-    }
+ const empUpdated= employee.map(({sales,returnSales,...emp})=>{
 
-    res.status(200).json(showroom.employees)
+    const filteredSales= sales.filter(sale => {
+      // return true if the sale's product is not included in the returnSales array
+      return !returnSales.some(returnSale => returnSale.itemCode === sale.itemCode);
+    });
 
-}
+    return {...emp,sales:filteredSales,returnSales}
+  })
+
+  res.status(200).json(empUpdated);
+};
 
 export const updateEmployee: ControllerFn = async (req, res, _next) => {
-    const id = req.params.id
+ try {
+   const id = req.params.id;
 
-    const employee = await Employee.findOne({where: {id: id}})
+   const employee = await Employee.findOne({ where: { id: id } });
 
-    if (!employee) {
-        return _next(new ErrorHandler('Employee Does not Exists', 404))
-    }
-    Object.assign(employee, req.body)
+   if (!employee) {
+     return _next(new ErrorHandler("Employee Does not Exists", 404));
+   }
+   Object.assign(employee, req.body);
 
-    await employee.save()
-    res.status(200).json(employee)
-}
+   await employee.save();
+   res.status(200).json(employee);
+ }catch (e) {
+   res.status(500).json({message:e.message})
+ }
+};
 
 export const deleteEmployee: ControllerFn = async (req, res, _next) => {
-    const id = req.params.id
+ try{
+   const id = req.params.id;
 
-    const employee = await Employee.findOne({where: {id: id}})
+   const employee = await Employee.findOne({ where: { id: id } });
 
-    if (!employee) {
-        return _next(new ErrorHandler('Employee Does not Exists', 404))
-    }
+   if (!employee) {
+     return _next(new ErrorHandler("Employee Does not Exists", 404));
+   }
 
-    await employee.remove()
-    res.status(200).json(await Employee.find())
-}
+   await employee.remove();
+   res.status(200).json(await Employee.find());
+ }catch (e) {
+   console.log(e)
+   res.status(500).json({message:e.message})
+ }
+};

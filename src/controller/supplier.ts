@@ -1,81 +1,91 @@
-import xlsx from 'xlsx';
-import Showroom from '../entities/showroom';
-import Supplier from '../entities/supplier';
-import { ControllerFn } from '../types';
-import ErrorHandler from '../utils/errorHandler';
+import xlsx from "xlsx";
+import Supplier from "../entities/supplier";
+import { ControllerFn } from "../types";
+import ErrorHandler from "../utils/errorHandler";
+import dataSource from "../typeorm.config";
 
 export const createSupplier: ControllerFn = async (req, res, next) => {
   try {
     const { supplierName, contactPersonName, contactPersonNumber } =
       req.body as Supplier;
-
-    let showroom: Showroom | null;
-
     if (!supplierName || !contactPersonNumber || !contactPersonName) {
-      return next(new ErrorHandler('Please provide required information', 404));
+      return next(new ErrorHandler("Please provide required information", 404));
     }
-    const isExist = await Supplier.findOne({
-      where: { contactPersonNumber }
+    const isExist = await dataSource.getRepository(Supplier).findOne({
+      where: { contactPersonNumber },
     });
     if (isExist) {
       return next(
-        new ErrorHandler('Supplier with this mobile number already exist', 404)
+        new ErrorHandler("Supplier with this mobile number already exist", 404)
       );
-    }
-
-    if (req.showroomId) {
-      showroom = await Showroom.findOne({ where: { id: req.showroomId } });
-    } else {
-      showroom = await Showroom.findOne({ where: { showroomCode: 'HO' } });
     }
 
     const supplier = Supplier.create(req.body);
 
     await supplier.save();
-    if (showroom) {
-      showroom.supplier.push(supplier);
-      await showroom.save();
-    }
-
-    return res.status(200).json(supplier);
+    res.status(200).json(supplier);
   } catch (error) {
     res.status(500).send({ message: error.message });
   }
 };
-export const updateSupplier = async () => {};
-export const deleteSupplier = async () => {};
-export const getSupplier: ControllerFn = async (req, res) => {
-  const showroom = await Showroom.findOne({ where: { id: req.showroomId } });
 
-  if (showroom && req.showroomId) {
-    res.status(200).json(showroom.supplier);
-  } else {
-    const suppliers = await Supplier.find();
+export const getSupplier: ControllerFn = async (_req, res) => {
+
+    const suppliers = await dataSource
+      .getRepository(Supplier)
+      .createQueryBuilder("supplier")
+      .getMany();
     res.status(200).json(suppliers);
-  }
+};
+
+export const updateSupplier: ControllerFn = async (req, res, next) => {
+  const { id } = req.params;
+
+  const supplier = await dataSource
+    .getRepository(Supplier)
+    .createQueryBuilder("supplier")
+    .where("supplier.id=:id", { id })
+    .getOne();
+
+  if (!supplier) return next(new ErrorHandler("Supplier not found", 404));
+  Object.assign(supplier, req.body);
+  await supplier.save();
+  res.status(200).json(supplier);
+};
+
+export const deleteSupplier: ControllerFn = async (req, res, next) => {
+  const { id } = req.params;
+
+  const supplier = await dataSource
+    .getRepository(Supplier)
+    .createQueryBuilder("supplier")
+    .where("supplier.id=:id", { id })
+    .getOne();
+
+  if (!supplier) return next(new ErrorHandler("Supplier not found", 404));
+  await supplier.remove();
+  res.status(200).json(await dataSource.getRepository(Supplier).find());
 };
 
 export const importSupplier: ControllerFn = async (req, res, next) => {
   try {
     const file = req.file;
     if (!file) {
-      return next(new ErrorHandler('No File Found', 400));
+      return next(new ErrorHandler("No File Found", 400));
     }
-    const workbook = xlsx.read(file?.buffer, { type: 'buffer' });
+    const workbook = xlsx.read(file?.buffer, { type: "buffer" });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
 
     const data: any[] = xlsx.utils.sheet_to_json(sheet);
 
     if (!data[0].supplierName || !data[0].contactPersonNumber) {
       return next(
-        new ErrorHandler('Supplier name And Contact Number not found', 400)
+        new ErrorHandler("Supplier Name, Contact Number, Showroom Code not found", 400)
       );
     }
 
-    data.every(async items => {
-      const showroom = await Showroom.findOne({
-        where: { id: items.showroomCode }
-      });
+    data.every(async (items) => {
+
       const supplier = new Supplier();
 
       supplier.supplierName = items?.supplierName;
@@ -86,13 +96,10 @@ export const importSupplier: ControllerFn = async (req, res, next) => {
       supplier.altContactNumber = items?.altContactNumber;
       supplier.extraInfo = items?.extraInfo;
 
-      showroom?.supplier.push(supplier);
-
-      await showroom?.save();
       await supplier.save();
     });
 
-    res.status(201).json({ message: 'Supplier Imported Successfully' });
+    res.status(201).json({ message: "Supplier Imported Successfully" });
   } catch (e) {
     res.status(500).send({ message: e.message });
   }

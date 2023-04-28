@@ -3,19 +3,16 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  JoinColumn,
   OneToMany,
-  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from "typeorm";
 import Expenses from "./expenses";
-import Supplier from "./supplier";
 import Customer from "./customer";
 import Invoice from "./invoice";
-import User from "./user";
-import Account from "./account";
 import Employee from "./employee";
+import Returned from "./Returned";
+import Purchase from "./purchase";
 
 @Entity()
 export default class Showroom extends BaseEntity {
@@ -38,13 +35,7 @@ export default class Showroom extends BaseEntity {
     eager: true,
   })
   expenses: Expenses[];
-
-  @OneToMany(() => Supplier, (sr) => sr.showroom, {
-    cascade: true,
-    eager: true,
-  })
-  supplier: Supplier[];
-
+  
   @OneToMany(() => Customer, (cm) => cm.showroom, {
     cascade: true,
     eager: true,
@@ -57,26 +48,17 @@ export default class Showroom extends BaseEntity {
   })
   invoices: Invoice[];
 
-  @OneToOne(() => Account, {
-    cascade: true,
-    eager: true,
-    onUpdate: "CASCADE",
-    onDelete: "CASCADE",
-  })
-  @JoinColumn()
-  accounts: Account;
-
-  @OneToMany(() => User, (user) => user.showroom, {
-    eager: true,
-    cascade: true,
-  })
-  users: User[];
-
   @OneToMany(() => Employee, (emp) => emp.showroom, {
     eager: true,
     cascade: true,
   })
   employees: Employee[];
+
+  @OneToMany(() => Returned, (r) => r.showroom, { cascade: true, eager: true })
+  returned: Returned[];
+
+  @OneToMany(() => Purchase, (p) => p.showroom, { cascade: true, eager: true })
+  purchases: Purchase[];
 
   @CreateDateColumn()
   createdAt: Date;

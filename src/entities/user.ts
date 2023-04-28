@@ -1,14 +1,12 @@
 import {
-    BaseEntity,
-    Column,
-    CreateDateColumn,
-    Entity,
-    ManyToOne,
-    PrimaryGeneratedColumn,
-    UpdateDateColumn
-} from 'typeorm';
-import {UserRole} from '../types';
-import Showroom from "./showroom";
+  BaseEntity,
+  Column,
+  CreateDateColumn,
+  Entity,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from "typeorm";
+import { UserRole } from "../types";
 
 @Entity()
 export default class User extends BaseEntity {
@@ -34,8 +32,6 @@ export default class User extends BaseEntity {
     @Column({default: UserRole.SA, type: 'enum', enum: UserRole})
     role: string;
 
-    @ManyToOne(() => Showroom, sr => sr.users, {onDelete: 'CASCADE', onUpdate: 'CASCADE'})
-    showroom: Showroom
 
     @CreateDateColumn()
     createdAt: Date;

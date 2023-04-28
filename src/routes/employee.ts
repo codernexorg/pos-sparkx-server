@@ -1,9 +1,13 @@
-import express from 'express'
-import {createEmp, deleteEmployee, getEmployee, updateEmployee} from "../controller/employee";
-import {isSuperAdmin} from "../middleware/isAuth";
+import express from "express";
+import {
+  createEmp,
+  deleteEmployee,
+  getEmployee,
+  updateEmployee,
+} from "../controller/employee";
 
-const employeeRoutes = express.Router()
+const employeeRoutes = express.Router();
 
-employeeRoutes.route('/').get(getEmployee).post(isSuperAdmin, createEmp)
-employeeRoutes.route('/:id').patch(isSuperAdmin, updateEmployee).delete(isSuperAdmin, deleteEmployee)
+employeeRoutes.route('/').get(getEmployee).post( createEmp)
+employeeRoutes.route('/:id').patch( updateEmployee).delete( deleteEmployee)
 export default employeeRoutes
