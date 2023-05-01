@@ -32,6 +32,7 @@ const mount = async (app: Application) => {
     "http://sparkxfashion.com",
     "https://sparkxfashion.com",
     "http://localhost:3000",
+    "http://localhost:5173",
   ];
   app.use(compression());
   app.use(
@@ -126,4 +127,4 @@ const mount = async (app: Application) => {
   });
 };
 
-mount(express()).catch(e => console.log(e));
+mount(express()).catch((e) => console.log(e));
