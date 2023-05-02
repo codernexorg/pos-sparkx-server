@@ -1,14 +1,15 @@
-import { Request, Response } from 'express';
-import Barcode from '../entities/barcode';
-import BarcodeDefault from '../entities/barcodeDefault';
-import Product from '../entities/product';
-import { ControllerFn } from '../types';
-import ErrorHandler from '../utils/errorHandler';
+import { Request, Response } from "express";
+import Barcode from "../entities/barcode";
+import BarcodeDefault from "../entities/barcodeDefault";
+import Product from "../entities/product";
+import { ControllerFn } from "../types";
+import ErrorHandler from "../utils/errorHandler";
+import dataSource from "../typeorm.config";
 
 export const createBarcode: ControllerFn = async (req, res, _next) => {
   try {
     if (!req.body.name) {
-      return _next(new ErrorHandler('Barcode Name is required', 404));
+      return _next(new ErrorHandler("Barcode Name is required", 404));
     }
     const barcode = Barcode.create(req.body);
 
@@ -29,12 +30,12 @@ export const setDefaultBarcode: ControllerFn = async (req, res, _next) => {
   try {
     const id = req.params.id;
     if (!id) {
-      return _next(new ErrorHandler('No barcode id', 400));
+      return _next(new ErrorHandler("No barcode id", 400));
     }
     const barcode = await Barcode.findOne({ where: { id } });
 
     if (!barcode) {
-      return _next(new ErrorHandler('No barcode found', 400));
+      return _next(new ErrorHandler("No barcode found", 400));
     }
 
     const defaultBarcode = await BarcodeDefault.find();
@@ -58,18 +59,21 @@ export const setDefaultBarcode: ControllerFn = async (req, res, _next) => {
 };
 
 export const generateBarcode: ControllerFn = async (req, res, next) => {
-  const { lotNumber } = req.body as Product;
+  const { startItemCode, endItemCode } = req.body as {
+    startItemCode: string;
+    endItemCode: string;
+  };
 
-  if (!lotNumber) {
-    return next(new ErrorHandler('Invalid lot number', 404));
+  if (!startItemCode && !endItemCode) {
+    return next(new ErrorHandler("Invalid Start & End Item Code", 404));
   }
 
-  const products = await Product.find({
-    where: { lotNumber },
-    order: {
-      itemCode: 'ASC'
-    }
-  });
+  const products = await dataSource
+    .getRepository(Product)
+    .createQueryBuilder("product")
+    .where("product.itemCode>=:startItemCode", { startItemCode })
+    .andWhere("product.itemCode<=:endItemCode", { endItemCode })
+    .getMany();
 
   return res.status(200).json(products);
 };
@@ -78,7 +82,7 @@ export const updateBarcode: ControllerFn = async (req, res, next) => {
   const { id } = req.params;
   const barcode = await Barcode.findOne({ where: { id } });
   if (!barcode) {
-    return next(new ErrorHandler('No barcode found', 404));
+    return next(new ErrorHandler("No barcode found", 404));
   }
   Object.assign(barcode, req.body);
 
@@ -93,11 +97,11 @@ export const deleteBarcode: ControllerFn = async (req, res, next) => {
     const defaultBarcode = await BarcodeDefault.find();
     if (barcode && defaultBarcode[0].barcodeId === barcode.id) {
       return next(
-        new ErrorHandler('You are not able to delete default barcode', 404)
+        new ErrorHandler("You are not able to delete default barcode", 404)
       );
     }
     if (!barcode) {
-      return next(new ErrorHandler('No barcode found', 404));
+      return next(new ErrorHandler("No barcode found", 404));
     }
     await barcode.remove();
     res.status(200).json(await Barcode.find());
