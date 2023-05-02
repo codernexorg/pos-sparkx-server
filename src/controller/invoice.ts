@@ -464,7 +464,8 @@ export const getInvoices: ControllerFn = async (req, res, _next) => {
     .getRepository(Invoice)
     .createQueryBuilder("invoice")
     .leftJoinAndSelect("invoice.products", "products")
-    .leftJoinAndSelect("products.employee", "employee");
+    .leftJoinAndSelect("products.employee", "employee")
+    .leftJoinAndSelect("invoice.paymentMethod", "paymentMethod");
 
   if (req.showroomId) {
     const showroom = await dataSource
