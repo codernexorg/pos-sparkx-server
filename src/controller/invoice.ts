@@ -1,10 +1,16 @@
+import Payment from "../entities/Payment";
 import Customer from "../entities/customer";
 import Employee from "../entities/employee";
 import Invoice from "../entities/invoice";
 import Product from "../entities/product";
 import Showroom from "../entities/showroom";
 import dataSource from "../typeorm.config";
-import { ControllerFn, InvoiceStatus, ProductStatus } from "../types";
+import {
+  ControllerFn,
+  InvoiceStatus,
+  PaymentMethod,
+  ProductStatus,
+} from "../types";
 import ErrorHandler from "../utils/errorHandler";
 
 export const createInvoice: ControllerFn = async (req, res, next) => {
@@ -20,6 +26,7 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
       discountTk,
       payable,
       employees,
+      paymentMethod,
     } = req.body as {
       items: Product[];
       subtotal: number;
@@ -31,7 +38,13 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
       discountTk: number[];
       payable: number[];
       employees: string[];
+      paymentMethod: PaymentMethod;
     };
+
+    //Checking IF Payment Method Selected
+    if (!paymentMethod) {
+      return next(new ErrorHandler("Please Select A Payment Method", 404));
+    }
 
     //Checking if there any product to sell
 
@@ -156,11 +169,17 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
 
       await product.save();
     }
+    //Creating Payment Method
 
+    const payment = new Payment();
+    payment.paymentMethod = paymentMethod;
+    payment.amount = paidAmount;
+    await payment.save();
     //Initiating Invoice
 
     const invoice = new Invoice();
 
+    invoice.paymentMethod = payment;
     invoice.products = products;
     invoice.businessName = "SPARKX Lifestyle";
     if (req.body.invoiceStatus === "Hold") {
@@ -249,6 +268,7 @@ export const updateInvoice: ControllerFn = async (req, res, next) => {
       discountTk,
       payable,
       employees,
+      paymentMethod,
     } = req.body as {
       items: Product[];
       subtotal: number;
@@ -260,7 +280,12 @@ export const updateInvoice: ControllerFn = async (req, res, next) => {
       discountTk: number[];
       payable: number[];
       employees: string[];
+      paymentMethod: PaymentMethod;
     };
+
+    if (!paymentMethod) {
+      return next(new ErrorHandler("Please select a payment Method", 404));
+    }
 
     if (!items || !items.length) {
       return next(new ErrorHandler("No product to sell", 404));
@@ -347,17 +372,27 @@ export const updateInvoice: ControllerFn = async (req, res, next) => {
     }
     for (const [i, product] of products.entries()) {
       const sellPriceAfterDiscount = Math.round(
-          Number(product.sellPrice - discountTk[i])
+        Number(product.sellPrice - discountTk[i])
       );
       product.sellingStatus =
-          req.body.invoiceStatus === "Hold"
-              ? ProductStatus.Hold
-              : ProductStatus.Sold;
+        req.body.invoiceStatus === "Hold"
+          ? ProductStatus.Hold
+          : ProductStatus.Sold;
       product.discount = discounts[i];
       product.sellPriceAfterDiscount = sellPriceAfterDiscount;
 
       await product.save();
     }
+
+    const payment = new Payment();
+
+    payment.amount = paidAmount;
+
+    payment.paymentMethod = paymentMethod;
+
+    await payment.save();
+
+    invoice.paymentMethod = payment;
 
     invoice.products = products;
     invoice.businessName = "SPARKX Lifestyle";
@@ -429,7 +464,8 @@ export const getInvoices: ControllerFn = async (req, res, _next) => {
     .getRepository(Invoice)
     .createQueryBuilder("invoice")
     .leftJoinAndSelect("invoice.products", "products")
-    .leftJoinAndSelect("products.employee", "employee");
+    .leftJoinAndSelect("products.employee", "employee")
+    .leftJoinAndSelect("invoice.paymentMethod", "paymentMethod");
 
   if (req.showroomId) {
     const showroom = await dataSource
@@ -471,21 +507,18 @@ export const resetHoldInvoice: ControllerFn = async (req, res, next) => {
     .leftJoinAndSelect("invoice.products", "products")
     .where("invoice.id=:id", { id })
     .getOne();
-  
-  if(!invoice){
-    return next(new ErrorHandler('Invoice not found',404))
-  }
-  invoice.invoiceAmount=0
-  invoice.paidAmount=0;
 
-  
-  
-  for(const product of invoice.products){
-    product.sellingStatus=ProductStatus.Unsold
-    await product.save()
+  if (!invoice) {
+    return next(new ErrorHandler("Invoice not found", 404));
+  }
+  invoice.invoiceAmount = 0;
+  invoice.paidAmount = 0;
+
+  for (const product of invoice.products) {
+    product.sellingStatus = ProductStatus.Unsold;
+    await product.save();
   }
 
-  await invoice.save()
-  res.status(200).json(invoice)
-  
+  await invoice.save();
+  res.status(200).json(invoice);
 };
