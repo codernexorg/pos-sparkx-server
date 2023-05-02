@@ -68,7 +68,8 @@ export enum PurchaseStatus {
   Returned = "Returned",
 }
 
-export enum PaymentType {
-  Credit = "Credit",
-  Debit = "Debit",
+export enum PaymentMethod {
+  CASH = "CASH",
+  BKASH = "BKASH",
+  CBL = "CBL",
 }

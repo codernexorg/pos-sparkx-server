@@ -3,8 +3,10 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
   ManyToOne,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from "typeorm";
@@ -13,6 +15,7 @@ import Product from "./product";
 import Employee from "./employee";
 import Showroom from "./showroom";
 import { filter, find } from "underscore";
+import Payment from "./Payment";
 
 @Entity()
 export default class Invoice extends BaseEntity {
@@ -102,6 +105,14 @@ export default class Invoice extends BaseEntity {
   // })
   // @JoinColumn()
   // returned: Returned;
+
+  @OneToOne(() => Payment, {
+    eager: true,
+    onDelete: "SET NULL",
+    onUpdate: "CASCADE",
+  })
+  @JoinColumn()
+  paymentMethod: Payment;
 
   @CreateDateColumn()
   createdAt: Date;
