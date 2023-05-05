@@ -1,4 +1,4 @@
-import { ControllerFn, PaymentType } from "../types";
+import { ControllerFn } from "../types";
 import ErrorHandler from "../utils/errorHandler";
 import ExpenseType from "../entities/expenseType";
 import Expenses from "../entities/expenses";
@@ -79,9 +79,7 @@ export const createExpense: ControllerFn = async (req, res, next) => {
 
   //Payment Information
   const payment = new Payment();
-  payment.paymentNote = expense.expenseReason + " " + expense.expenseName;
   payment.amount = expense.expenseCost;
-  payment.paymentType = PaymentType.Credit;
   await payment.save();
   if (showroom) {
     await showroom.save();
