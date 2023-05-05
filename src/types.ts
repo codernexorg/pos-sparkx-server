@@ -40,7 +40,8 @@ export enum ProductStatus {
   Sold = "Sold",
   Lost = "Lost",
   Unsold = "Unsold",
-  Damaged = "Damaged",
+  Damaged = "Final Damaged",
+  ReturnToSupplier = "Return To Supplier",
 }
 
 export enum EmpDesignation {
