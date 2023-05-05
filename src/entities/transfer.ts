@@ -11,29 +11,27 @@ import Product from "./product";
 
 @Entity()
 export default class TransferProduct extends BaseEntity {
-    @PrimaryGeneratedColumn()
-    id: number
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @Column()
-    prevLocation: string
+  @Column()
+  prevLocation: string;
 
-    @Column()
-    currentLocation: string
+  @Column()
+  currentLocation: string;
 
-    @Column()
-    productCount: number
+  @Column()
+  productCount: number;
 
-    @Column({nullable:true})
-    transferredLot: string
+  @OneToMany(() => Product, (p) => p.transferredHistory, {
+    cascade: true,
+    eager: true,
+  })
+  transferredProducts: Product[];
 
-    @OneToMany(() => Product, p => p.transferredHistory, {cascade: true, eager: true})
-    transferredProducts: Product[]
+  @CreateDateColumn()
+  createdAt: Date;
 
-
-    @CreateDateColumn()
-    createdAt: Date
-
-    @UpdateDateColumn()
-    updatedAt: Date
-
+  @UpdateDateColumn()
+  updatedAt: Date;
 }
