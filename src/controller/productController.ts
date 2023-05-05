@@ -394,6 +394,8 @@ export const transferProduct: ControllerFn = async (req, res, next) => {
     transferData.productCount = itemCodes.length;
     transferData.transferredProducts = productArr;
 
+    //Removed Transfer Lot
+
     await transferData.save();
     res.status(200).json("Product Transferred Successfully");
   } catch (e) {
