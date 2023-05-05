@@ -365,14 +365,13 @@ export const importProduct = async (
 };
 
 export const transferProduct: ControllerFn = async (req, res, next) => {
-  const { showroomName, lotNumber, whName, itemCodes } = req.body as {
-    showroomName: string;
-    lotNumber: string;
-    whName: string;
+  const { plannedShowroom, currentShowroom, itemCodes } = req.body as {
+    currentShowroom: string;
+    plannedShowroom: string;
     itemCodes: { itemCode: string }[];
   };
 
-  if (!showroomName || !lotNumber || !itemCodes.length) {
+  if (!currentShowroom || !plannedShowroom || !itemCodes.length) {
     return next(new ErrorHandler("Please Provide All Information", 404));
   }
   try {
@@ -385,14 +384,13 @@ export const transferProduct: ControllerFn = async (req, res, next) => {
       .getMany();
 
     for (const product of productArr) {
-      product.whName = showroomName;
-      product.showroomName = showroomName;
+      product.showroomName = plannedShowroom;
+      product.whName = plannedShowroom;
       await product.save();
     }
     const transferData = new TransferProduct();
-    transferData.transferredLot = lotNumber;
-    transferData.prevLocation = whName;
-    transferData.currentLocation = showroomName;
+    transferData.prevLocation = currentShowroom;
+    transferData.currentLocation = plannedShowroom;
     transferData.productCount = itemCodes.length;
     transferData.transferredProducts = productArr;
 
