@@ -1,10 +1,15 @@
-import express from 'express';
-import {createBrand, deleteBrand, getBrands, updateBrand} from '../controller/brand';
+import express from "express";
+import {
+  createBrand,
+  deleteBrand,
+  getBrands,
+  updateBrand,
+} from "../controller/brand";
 
-const brandRoutes = express.Router();
+export const brandRoutes = express.Router();
 
-brandRoutes.route('/').post(createBrand).get(getBrands);
+brandRoutes.route("/").post(createBrand).get(getBrands);
 
-brandRoutes.route('/:id').patch(updateBrand).delete(deleteBrand);
+brandRoutes.route("/:id").patch(updateBrand).delete(deleteBrand);
 
 export default brandRoutes;

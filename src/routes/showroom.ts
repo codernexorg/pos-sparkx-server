@@ -1,14 +1,14 @@
-import express from 'express';
+import express from "express";
 import {
   createShowroom,
   deleteShowroom,
   getShowroom,
-  updateShowroom
-} from '../controller/shoroom';
+  updateShowroom,
+} from "../controller/shoroom";
 
-const showroomRoutes = express.Router();
+export const showroomRoutes = express.Router();
 
-showroomRoutes.route('/').post(createShowroom).get(getShowroom);
-showroomRoutes.route('/:id').patch(updateShowroom).delete(deleteShowroom);
+showroomRoutes.route("/").post(createShowroom).get(getShowroom);
+showroomRoutes.route("/:id").patch(updateShowroom).delete(deleteShowroom);
 
 export default showroomRoutes;

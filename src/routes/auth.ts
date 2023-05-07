@@ -1,9 +1,9 @@
-import express from 'express';
-import { loginUser, logoutUser } from '../controller/user';
+import express from "express";
+import { loginUser, logoutUser } from "../controller/user";
 
-const authRoute = express.Router();
+export const authRoutes = express.Router();
 
-authRoute.post('/login', loginUser);
-authRoute.post('/logout', logoutUser);
+authRoutes.post("/login", loginUser);
+authRoutes.post("/logout", logoutUser);
 
-export default authRoute;
+export default authRoutes;

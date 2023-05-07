@@ -7,11 +7,11 @@ import {
 } from "../controller/invoice";
 import { createReturnProduct, getReturnProduct } from "../controller/return";
 
-const invoiceRoutes = express.Router();
+export const invoiceRoutes = express.Router();
 
-invoiceRoutes.route('/').get(getInvoices).post(createInvoice)
-invoiceRoutes.route('/:id').patch(updateInvoice)
-invoiceRoutes.route('/return').get(getReturnProduct).post(createReturnProduct)
-invoiceRoutes.route('/reset-hold/:id').patch(resetHoldInvoice)
+invoiceRoutes.route("/").get(getInvoices).post(createInvoice);
+invoiceRoutes.route("/:id").patch(updateInvoice);
+invoiceRoutes.route("/return").get(getReturnProduct).post(createReturnProduct);
+invoiceRoutes.route("/reset-hold/:id").patch(resetHoldInvoice);
 
-export default invoiceRoutes
+export default invoiceRoutes;

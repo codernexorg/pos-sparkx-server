@@ -8,10 +8,10 @@ import {
 } from "../controller/supplier";
 import multer from "multer";
 
-const supplierRoutes = express.Router();
-const upload = multer({storage: multer.memoryStorage()});
+export const supplierRoutes = express.Router();
+const upload = multer({ storage: multer.memoryStorage() });
 
-supplierRoutes.route('/').post(createSupplier).get(getSupplier);
-supplierRoutes.post('/import', upload.single('file'), importSupplier);
-supplierRoutes.route('/:id').patch(updateSupplier).delete(deleteSupplier)
+supplierRoutes.route("/").post(createSupplier).get(getSupplier);
+supplierRoutes.post("/import", upload.single("file"), importSupplier);
+supplierRoutes.route("/:id").patch(updateSupplier).delete(deleteSupplier);
 export default supplierRoutes;
