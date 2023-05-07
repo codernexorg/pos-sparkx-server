@@ -1,9 +1,8 @@
 import express from "express";
-import {getPurchase} from "../controller/purchase";
+import { getPurchase } from "../controller/purchase";
 
-const purchase = express.Router()
+export const purchaseRoutes = express.Router();
 
+purchaseRoutes.route("/").get(getPurchase);
 
-purchase.route('/').get(getPurchase)
-
-export default purchase
+export default purchaseRoutes;

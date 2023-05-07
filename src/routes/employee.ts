@@ -6,8 +6,8 @@ import {
   updateEmployee,
 } from "../controller/employee";
 
-const employeeRoutes = express.Router();
+export const employeeRoutes = express.Router();
 
-employeeRoutes.route('/').get(getEmployee).post( createEmp)
-employeeRoutes.route('/:id').patch( updateEmployee).delete( deleteEmployee)
-export default employeeRoutes
+employeeRoutes.route("/").get(getEmployee).post(createEmp);
+employeeRoutes.route("/:id").patch(updateEmployee).delete(deleteEmployee);
+export default employeeRoutes;
