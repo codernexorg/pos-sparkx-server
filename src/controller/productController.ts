@@ -151,39 +151,46 @@ export const createSingleProduct: ControllerFn = async (req, res, next) => {
 };
 
 export const getProducts: ControllerFn = async (req, res, next) => {
-  if (req.showroomId) {
-    const showroom = await dataSource
-      .getRepository(Showroom)
+  res.set("Access-Control-Allow-Headers", "Content-Type");
+  res.set("Access-Control-Allow-Methods", "GET");
+  const { showroomId } = req;
+  const productRepository = dataSource.getRepository(Product);
+  type ProductResponse = {
+    product: Product[];
+    hasMore: boolean;
+  };
+
+  const response: ProductResponse = {
+    product: [],
+    hasMore: false,
+  };
+
+  if (showroomId) {
+    const showroomRepository = dataSource.getRepository(Showroom);
+    const showroom = await showroomRepository
       .createQueryBuilder("showroom")
-      .where("showroom.id=:id", { id: req.showroomId })
+      .where("showroom.id=:id", { id: showroomId })
       .getOne();
+
     if (!showroom) {
       return next(new ErrorHandler("Unexpected Result", 404));
     }
-    const product = await dataSource
-      .getRepository(Product)
+
+    response.product = await productRepository
       .createQueryBuilder("p")
       .where("p.showroomName=:showroomName", {
         showroomName: showroom.showroomName,
       })
       .orderBy("p.itemCode", "ASC")
       .getMany();
-
-    res.status(200).json({
-      product: product,
-      hasMore: false,
-    });
   } else {
-    const product = await dataSource
-      .getRepository(Product)
+    response.product = await productRepository
       .createQueryBuilder("p")
       .orderBy("p.itemCode", "ASC")
       .getMany();
-    res.status(200).json({
-      product: product,
-      hasMore: false,
-    });
   }
+
+  res.status(200).json(response);
 };
 
 export const getProductGroup: ControllerFn = async (_req, res, _next) => {
