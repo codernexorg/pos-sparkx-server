@@ -6,7 +6,7 @@ export default class Brand extends BaseEntity {
     id: number;
 
     @Column()
-    name: string;
+    brandName: string;
     @CreateDateColumn()
     createdAt: string;
 

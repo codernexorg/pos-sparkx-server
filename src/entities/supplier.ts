@@ -1,4 +1,11 @@
-import {BaseEntity, Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn} from 'typeorm';
+import {
+  BaseEntity,
+  Column,
+  CreateDateColumn,
+  Entity,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from "typeorm";
 
 @Entity()
 export default class Supplier extends BaseEntity {
@@ -11,7 +18,7 @@ export default class Supplier extends BaseEntity {
     @Column({nullable: true})
     supplierEmail: string;
 
-    @Column()
+    @Column({nullable: true})
     contactPersonName: string;
 
     @Column({nullable: true})

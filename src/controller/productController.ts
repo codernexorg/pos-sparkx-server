@@ -1,268 +1,555 @@
-import {NextFunction, Request, Response} from 'express';
-import moment from 'moment';
-import xlsx from 'xlsx';
-import Product from '../entities/product';
-import ProductGroup from '../entities/productGroup';
-import {ControllerFn} from '../types';
-import ErrorHandler from '../utils/errorHandler';
-import {Showroom} from "../entities";
+import { NextFunction, Request, Response } from "express";
+import moment from "moment";
+import xlsx from "xlsx";
+import Product from "../entities/product";
+import ProductGroup from "../entities/productGroup";
+import Purchase from "../entities/purchase";
+import Showroom from "../entities/showroom";
+import TransferProduct from "../entities/transfer";
+import { ControllerFn, ProductStatus } from "../types";
+import ErrorHandler from "../utils/errorHandler";
+import dataSource from "../typeorm.config";
+import { filter } from "underscore";
 
 export const createProductGroup: ControllerFn = async (req, res, next) => {
-    const {productCategory, productCode, productName} =
-        req.body as ProductGroup;
+  try {
+    const { productCategory, productCode, productName } =
+      req.body as ProductGroup;
 
     if (!productCategory || !productCode || !productName) {
-        return next(new ErrorHandler('Please Enter Required Information', 404));
+      return next(new ErrorHandler("Please Enter Required Information", 404));
     }
-    const isExist = await ProductGroup.findOne({
-        where: {
-            productCode
-        }
-    });
-    if (isExist) {
-        return next(new ErrorHandler('Product Group Already Exist', 404));
-    }
-    const productGroup = ProductGroup.create({
-        ...req.body,
-        productCode: productCode
-    });
+
+    const productGroup = new ProductGroup();
+
+    productGroup.productCategory = productCategory;
+    productGroup.productCode = productCode;
+    productGroup.productName = productName;
 
     await productGroup.save();
 
     return res.status(201).json(productGroup);
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ message: e.message });
+  }
 };
 
 export const createSingleProduct: ControllerFn = async (req, res, next) => {
+  try {
     const {
-        itemCode,
-        productGroup,
-        invoiceNumber,
-        unitCost,
-        sellPrice,
-        transportationCost,
-        lotNumber,
-        totalItem
+      itemCode,
+      productGroup,
+      invoiceNumber,
+      unitCost,
+      sellPrice,
+      lotNumber,
+      totalItem,
+      whName,
+      invoiceTotalPrice,
     } = req.body as Product;
 
-    if (
-        !itemCode ||
-        !productGroup ||
-        !invoiceNumber ||
-        !unitCost ||
-        !sellPrice ||
-        !lotNumber ||
-        !totalItem
-    ) {
-        return next(new ErrorHandler('Please Enter Required Information', 404));
+    const requiredFields = [
+      itemCode,
+      productGroup,
+      invoiceNumber,
+      unitCost,
+      sellPrice,
+      lotNumber,
+      totalItem,
+      whName,
+    ];
+    if (requiredFields.some((field) => !field)) {
+      return next(new ErrorHandler("Please Enter Required Information", 404));
     }
-    const productArr: Product[] | null = [];
 
     const productCode = await ProductGroup.findOne({
-        where: {
-            productName: productGroup
-        }
+      where: {
+        productName: productGroup,
+      },
     });
 
+    const showroom =
+      (await dataSource
+        .getRepository(Showroom)
+        .createQueryBuilder("showroom")
+        .leftJoinAndSelect("showroom.purchases", "purchase")
+        .where("showroom.id=:id", { id: req.showroomId })
+        .getOne()) ||
+      (await dataSource
+        .getRepository(Showroom)
+        .createQueryBuilder("showroom")
+        .leftJoinAndSelect("showroom.purchases", "purchase")
+        .where('showroom.showroomCode="HO"')
+        .getOne());
 
     if (totalItem > 1) {
-        let itemMCode = parseInt(itemCode);
-        for (let i = 0; i < totalItem; i++) {
-            productArr.push({
-                ...req.body,
-                itemCode: String(itemMCode.toString().padStart(10, '0')),
-                productCode: String(productCode?.productCode),
-                grossProfit: String(transportationCost ? (sellPrice - (transportationCost + unitCost)).toString() : (sellPrice - unitCost).toString()),
-                grossMargin: String(transportationCost ? (
-                    (sellPrice -
-                        (transportationCost + unitCost)) / sellPrice * 100
-                ).toString() : (
-                    (sellPrice - unitCost) / sellPrice * 100
-                ).toString()),
-                unitTotalCost: Number(transportationCost ? unitCost + transportationCost : unitCost)
-            });
-            itemMCode = itemMCode + 1;
-        }
-
-
-        productArr.every(async product => {
-            const productToSave = Product.create({
-                ...product,
-                invoiceDate: new Date(product.invoiceDate)
-            });
-            await productToSave.save();
+      let itemMCode = parseInt(itemCode);
+      const productArr: Product[] = [];
+      for (let i = 0; i < totalItem; i++) {
+        productArr.push({
+          ...req.body,
+          itemCode: String(itemMCode.toString().padStart(10, "0")),
+          productCode: String(productCode?.productCode),
+          grossProfit: (sellPrice - +unitCost).toFixed(2),
+          grossMargin: (((sellPrice - unitCost) / sellPrice) * 100).toFixed(2),
+          unitTotalCost: Number(unitCost),
+          sellingStatus: ProductStatus.Unsold,
         });
-        return res.json(productArr);
+        itemMCode += 1;
+      }
+
+      const purchase = new Purchase();
+      await Promise.all(
+        productArr.map(async (product) => {
+          const productToSave = Product.create({
+            ...product,
+            invoiceDate: new Date(req.body?.invoiceDate),
+          });
+          purchase.addPurchase(product);
+          await productToSave.save();
+        })
+      );
+
+      purchase.quantity = productArr.length;
+
+      purchase.invoiceNo = invoiceNumber;
+      purchase.supplierName = req.body?.supplierName;
+      purchase.purchaseAmount = invoiceTotalPrice;
+      showroom?.purchases.push(purchase);
+      await Promise.all([purchase.save(), showroom?.save()]);
+      return res.json(productArr);
     } else {
-        const productToSave = Product.create({
-            ...req.body,
-            invoiceDate: moment(req.body.invoiceDate).toDate(),
-            productCode: productCode?.productCode,
-            unitTotalCost: Number(transportationCost ? unitCost + transportationCost : unitCost),
-            grossProfit: String(transportationCost ? (sellPrice - (transportationCost + unitCost)).toString() : (sellPrice - unitCost).toString()),
-            grossMargin: String(transportationCost ? (
-                (sellPrice -
-                    (transportationCost + unitCost)) / sellPrice * 100
-            ).toString() : (
-                (sellPrice - unitCost) / sellPrice * 100
-            ).toString()),
-        });
+      const productToSave = Product.create({
+        ...req.body,
+        invoiceDate: moment(req.body?.invoiceDate).toDate(),
+        productCode: productCode?.productCode,
+        unitTotalCost: Number(unitCost),
+        sellingStatus: ProductStatus.Unsold,
+        grossProfit: (sellPrice - +unitCost).toFixed(2),
+        grossMargin: (((sellPrice - unitCost) / sellPrice) * 100).toFixed(2),
+      });
 
-        await productToSave.save();
-        return res.json([productToSave]);
+      await productToSave.save();
+
+      const purchase = new Purchase();
+      purchase.addPurchase(productToSave);
+      purchase.invoiceNo = invoiceNumber;
+      purchase.quantity = 1;
+      purchase.supplierName = req.body?.supplierName;
+      purchase.purchaseAmount = invoiceTotalPrice;
+
+      showroom?.purchases.push(purchase);
+      await Promise.all([purchase.save(), showroom?.save()]);
+
+      return res.json([productToSave]);
     }
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ message: e.message });
+  }
 };
 
 export const getProducts: ControllerFn = async (req, res, next) => {
-    if (req.showroomId) {
-        const showroom = await Showroom.findOne({where: {id: req.showroomId}});
-        if (!showroom) {
-            return next(new ErrorHandler("Unexpected Result", 404))
-        }
-        const product = await Product.find({
-            order: {
-                itemCode: 'ASC'
-            }, where: {showroomName: showroom.showroomName}
-        })
-        res.status(200).json({
-            product: product,
-            hasMore: false
-        });
-    } else {
-        const product = await Product.find({
-            order: {
-                itemCode: 'ASC'
-            }
-        })
-        res.status(200).json({
-            product: product,
-            hasMore: false
-        });
+  res.set("Access-Control-Allow-Headers", "Content-Type");
+  res.set("Access-Control-Allow-Methods", "GET");
+  const { showroomId } = req;
+  const productRepository = dataSource.getRepository(Product);
+  type ProductResponse = {
+    product: Product[];
+    hasMore: boolean;
+  };
+
+  const response: ProductResponse = {
+    product: [],
+    hasMore: false,
+  };
+
+  if (showroomId) {
+    const showroomRepository = dataSource.getRepository(Showroom);
+    const showroom = await showroomRepository
+      .createQueryBuilder("showroom")
+      .where("showroom.id=:id", { id: showroomId })
+      .getOne();
+
+    if (!showroom) {
+      return next(new ErrorHandler("Unexpected Result", 404));
     }
+
+    response.product = await productRepository
+      .createQueryBuilder("p")
+      .where("p.showroomName=:showroomName", {
+        showroomName: showroom.showroomName,
+      })
+      .orderBy("p.itemCode", "ASC")
+      .getMany();
+  } else {
+    response.product = await productRepository
+      .createQueryBuilder("p")
+      .orderBy("p.itemCode", "ASC")
+      .getMany();
+  }
+
+  res.status(200).json(response);
 };
 
-export const getProductGroup: ControllerFn = async (_req, res) => {
-    const productGroup = await ProductGroup.find();
-
-    res.status(200).json(productGroup);
+export const getProductGroup: ControllerFn = async (_req, res, _next) => {
+  res.status(200).json(await ProductGroup.find());
 };
 
 export const createMultipleProducts: ControllerFn = async (req, res, next) => {
+  try {
     const products = req.body as Product[];
 
     if (products.length === 0) {
-        return next(new ErrorHandler('Please Enter Required Information', 404));
+      return next(new ErrorHandler("Please Enter Required Information", 404));
     } else if (
-        !products[0].invoiceDate ||
-        !products[0].invoiceNumber ||
-        !products[0].sellPrice ||
-        !products[0].itemCode
+      !products[0].invoiceDate ||
+      !products[0].invoiceNumber ||
+      !products[0].sellPrice ||
+      !products[0].itemCode
     ) {
-        return next(new ErrorHandler('Please Enter Required Information', 404));
+      return next(new ErrorHandler("Please Enter Required Information", 404));
     }
 
+    const showroom =
+      (await dataSource
+        .getRepository(Showroom)
+        .createQueryBuilder("showroom")
+        .leftJoinAndSelect("showroom.purchases", "purchase")
+        .where("showroom.id=:id", { id: req.showroomId })
+        .getOne()) ||
+      (await dataSource
+        .getRepository(Showroom)
+        .createQueryBuilder("showroom")
+        .leftJoinAndSelect("showroom.purchases", "purchase")
+        .where('showroom.showroomCode="HO"')
+        .getOne());
+    if (!showroom) {
+      return next(new ErrorHandler("Unexpected Result", 404));
+    }
 
-    products.every(async (product: Product) => {
-        ProductGroup.findOne({
-            where: {productName: product['productGroup']}
-        }).then(async value => {
-            const productToSave = Product.create({
-                ...product,
-                invoiceDate: moment(req.body.invoiceDate).toDate(),
-                productCode: String(value?.productCode),
-                grossProfit: String((
-                    product.sellPrice -
-                    (product.transportationCost + product.unitCost)
-                ).toString()),
-                grossMargin: String((
-                    product.sellPrice -
-                    (product.transportationCost + product.unitCost) -
-                    (product.transportationCost + product.unitCost) / product.sellPrice -
-                    (product.transportationCost + product.unitCost)
-                ).toString()),
-                totalItem: products.length,
-                unitCost: Number(product.unitCost + product.transportationCost)
-            });
-            await productToSave.save();
+    const invoiceDate = moment(req.body.invoiceDate).toDate();
+
+    const productArr: Product[] = [];
+    const purchase = new Purchase();
+
+    await Promise.all(
+      products.map(async (product: Product) => {
+        const grossProfit = product.sellPrice - product.unitCost;
+        const grossMargin = ((grossProfit / product.sellPrice) * 100).toFixed(
+          2
+        );
+        const productCode = await ProductGroup.findOne({
+          where: { productName: product.productGroup },
         });
-    });
 
-    return res.status(200).json(products);
+        const productToSave = Product.create({
+          ...product,
+          invoiceDate,
+          grossProfit: grossProfit.toFixed(2),
+          grossMargin,
+          totalItem: products.length,
+          unitCost: Number(product.unitCost),
+          sellingStatus: ProductStatus.Unsold,
+          productCode: productCode?.productCode,
+        });
+
+        purchase.addPurchase(productToSave);
+
+        purchase.invoiceNo = productToSave.invoiceNumber;
+        purchase.supplierName = productToSave.supplierName;
+        purchase.purchaseAmount = productToSave.invoiceTotalPrice;
+
+        await productToSave.save();
+        productArr.push(productToSave);
+      })
+    );
+    purchase.quantity = products.length;
+
+    showroom.purchases.push(purchase);
+
+    await Promise.all([purchase.save(), showroom.save()]);
+
+    return res.json(productArr);
+  } catch (e) {
+    res.status(400).json(e.message);
+  }
 };
 
 export const importProduct = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
+  req: Request,
+  res: Response,
+  next: NextFunction
 ) => {
+  try {
     const file = req.file;
 
     if (!file) {
-        return next(new ErrorHandler('No File Found', 400));
+      return next(new ErrorHandler("No File Found", 400));
     }
-    const workbook = xlsx.read(file?.buffer, {type: 'buffer'});
+    const workbook = xlsx.read(file?.buffer, { type: "buffer" });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
 
     const data: Product[] = xlsx.utils.sheet_to_json(sheet);
 
     if (data.length === 0) {
-        return next(new ErrorHandler('No Data Found', 400));
+      return next(new ErrorHandler("No Data Found", 400));
     }
-    if (
-        !data[0].sellPrice ||
-        !data[0].unitCost ||
-        !data[0].itemCode ||
-        !data[0].productGroup ||
-        !data[0].whName ||
-        !data[0].showroomName ||
-        !data[0].lotNumber
-    ) {
-        return next(new ErrorHandler('Required Information Missing', 400));
+
+    const requiredFields: { key: keyof Product; label: string }[] = [
+      { key: "itemCode", label: "Item Code" },
+      { key: "showroomName", label: "Showroom Name" },
+      { key: "lotNumber", label: "Lot Number" },
+      { key: "unitCost", label: "Unit Cost" },
+      { key: "productGroup", label: "Product Group" },
+      { key: "sellPrice", label: "Sell Price" },
+      { key: "sellingStatus", label: "Product Status" },
+      { key: "productCode", label: "Product Code" },
+      { key: "whName", label: "Current Location (whName)" },
+    ];
+
+    for (const product of data) {
+      const missingFields = requiredFields.filter(
+        (field) => !product[field.key]
+      );
+
+      if (missingFields.length > 0) {
+        const missingFieldsLabels = missingFields
+          .map((field) => field.label)
+          .join(", ");
+        return next(
+          new ErrorHandler(
+            `Product is missing value(s) for ${missingFieldsLabels}`,
+            404
+          )
+        );
+      }
     }
-    data.every(async product => {
-        const productToSave = Product.create({
-            ...product,
-            invoiceDate: moment(product.invoiceDate).toDate(),
-            itemCode: String(parseInt(product.itemCode).toString().padStart(10, '0')),
-            grossProfit: String((product.sellPrice - product.unitCost).toString()),
-            grossMargin: String((
-                product.sellPrice -
-                product.unitCost -
-                product.unitCost / product.sellPrice -
-                +product.unitCost
-            ).toString()),
-            unitTotalCost: Number(product.transportationCost
-                ? product.unitCost + product.transportationCost
-                : product.unitCost),
 
-            deliveryDate: moment(product.deliveryDate).toDate()
-        });
+    const productsToInsert = data.map((product) => ({
+      itemCode: product.itemCode.padStart(10, "0"),
+      showroomName: product.showroomName,
+      productCode: product?.productCode,
+      supplierName: product?.supplierName,
+      lotNumber: product.lotNumber,
+      size: product?.size,
+      unitCost: product.unitCost,
+      invoiceDate: new Date(product?.invoiceDate),
+      productGroup: product.productGroup,
+      grossProfit: (product.sellPrice - product.unitCost).toFixed(2),
+      grossMargin: (
+        ((product.sellPrice - product.unitCost) / product.sellPrice) *
+        100
+      ).toFixed(2),
+      unitTotalCost: product.unitCost,
+      deliveryDate: new Date(product?.deliveryDate),
+      sellPrice: product.sellPrice,
+      updatedAt: new Date(product?.updatedAt),
+      whName: product.whName,
+      challanNumber: product?.challanNumber,
+      invoiceNumber: product?.invoiceNumber,
+      invoiceTotalPrice: product?.invoiceTotalPrice,
+      totalItem: product?.totalItem,
+      transportationCost: product?.transportationCost,
+      purchaseName: product?.purchaseName,
+    }));
 
-        await productToSave.save();
+    // Use a single transaction to insert all products
+    await dataSource.transaction(async (manager) => {
+      await manager
+        .createQueryBuilder()
+        .insert()
+        .into(Product)
+        .values(productsToInsert)
+        .execute();
     });
 
-    res.status(200).json({message: 'Data imported successfully', data: data});
+    res.status(200).json({ message: "Data imported successfully", data: data });
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
 };
 
-
 export const transferProduct: ControllerFn = async (req, res, next) => {
-    const {
-        showroomName,
-        lotNumber,
-        whName,
-        itemCodes
-    } = req.body as { showroomName: string, lotNumber: string, whName: string, itemCodes: { itemCode: string }[] }
+  const { plannedShowroom, currentShowroom, itemCodes } = req.body as {
+    currentShowroom: string;
+    plannedShowroom: string;
+    itemCodes: { itemCode: string }[];
+  };
 
-    if (!showroomName || !whName || !lotNumber || !itemCodes.length) {
-        return next(new ErrorHandler("Please Provide All Information", 404))
+  if (!currentShowroom || !plannedShowroom || !itemCodes.length) {
+    return next(new ErrorHandler("Please Provide All Information", 404));
+  }
+  try {
+    const productArr = await Product.createQueryBuilder("product")
+      .where("product.itemCode IN (:...productCodes)", {
+        productCodes: itemCodes.map((item) => item.itemCode),
+      })
+      .leftJoinAndSelect("product.employee", "employee")
+      .leftJoinAndSelect("employee.sales", "sales")
+      .getMany();
+
+    for (const product of productArr) {
+      product.showroomName = plannedShowroom;
+      product.whName = plannedShowroom;
+      await product.save();
     }
-    itemCodes.every(async (item) => {
-        const product = await Product.findOne({where: {itemCode: item.itemCode}})
+    const transferData = new TransferProduct();
+    transferData.prevLocation = currentShowroom;
+    transferData.currentLocation = plannedShowroom;
+    transferData.productCount = itemCodes.length;
+    transferData.transferredProducts = productArr;
 
-        if (product) {
-            product.whName = showroomName
-            product.showroomName = showroomName
-            await product.save()
-        }
-    })
-    res.status(200).json("Product Transferred Successfully")
-}
+    //Removed Transfer Lot
+
+    await transferData.save();
+    res.status(200).json("Product Transferred Successfully");
+  } catch (e) {
+    console.log(e);
+    res.status(400).json({ success: false, message: e.message });
+  }
+};
+
+export const getTransferHistory: ControllerFn = async (_req, res) => {
+  res.status(200).json(await TransferProduct.find());
+};
+
+export const importProductGroup: ControllerFn = async (req, res, next) => {
+  try {
+    const file = req.file;
+    if (!file) {
+      return next(new ErrorHandler("No File Found", 400));
+    }
+    const workbook = xlsx.read(file?.buffer, { type: "buffer" });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
+    const data: ProductGroup[] = xlsx.utils.sheet_to_json(sheet);
+
+    if (data.length === 0) {
+      return next(new ErrorHandler("No Data Found", 400));
+    }
+
+    if (
+      !data[0].productCode ||
+      !data[0].productName ||
+      !data[0].productCategory
+    ) {
+      return next(
+        new ErrorHandler("Product Name, Code & Category Required", 400)
+      );
+    }
+
+    data.every(async (item) => {
+      const productGroup = new ProductGroup();
+
+      productGroup.productName = item.productName;
+      productGroup.productCategory = item.productCategory;
+      productGroup.productCode = item.productCode;
+
+      await productGroup.save();
+    });
+    res.status(200).json({ message: "Data Imported Successfully" });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+};
+
+export const updateProduct: ControllerFn = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const product = await Product.findOne({ where: { id } });
+
+    if (!product) {
+      return next(new ErrorHandler("Product Not Found", 404));
+    }
+
+    if (product.sellingStatus === ProductStatus.Sold) {
+      return next(
+        new ErrorHandler(
+          "Sold Products Cannot Update || You May Try To Return",
+          404
+        )
+      );
+    }
+
+    Object.assign(product, {
+      ...req.body,
+      grossProfit: String(product.sellPrice - +product.unitCost),
+      grossMargin: String(
+        ((product.sellPrice - product.unitCost) / product.sellPrice) * 100
+      ),
+    });
+
+    await product.save();
+
+    res.status(200).json(product);
+  } catch (e) {
+    console.log(e);
+    res.status(400).json({ success: false, message: e.message });
+  }
+};
+
+export const addTaglessProduct: ControllerFn = async (req, res, next) => {
+  try {
+    let showroom;
+    if (req.showroomId) {
+      showroom = await dataSource
+        .getRepository(Showroom)
+        .createQueryBuilder("sr")
+        .where("sr.id=:showroomId", { showroomId: req.showroomId })
+        .getOne();
+    } else {
+      showroom = await dataSource
+        .getRepository(Showroom)
+        .createQueryBuilder("sr")
+        .where('sr.showroomCode="HO"')
+        .getOne();
+    }
+
+    if (!showroom) {
+      return next(new ErrorHandler("Something Went Wrong", 404));
+    }
+
+    const { productGroup, sellPrice } = req.body as Product;
+    if (!productGroup) {
+      return next(new ErrorHandler("Product Group Required", 400));
+    }
+    if (!sellPrice) {
+      return next(new ErrorHandler("Sell Price Required", 400));
+    }
+
+    const productGroupCode = await dataSource
+      .getRepository(ProductGroup)
+      .createQueryBuilder("p")
+      .where("p.productName = :productGroup", { productGroup })
+      .getOne();
+
+    if (!productGroupCode) {
+      return next(new ErrorHandler("Product Group Not Found", 400));
+    }
+    const products = await dataSource.getRepository(Product).find();
+
+    const product = new Product();
+
+    const taglessProducts = filter(products, (pr) => pr.tagless);
+
+    product.itemCode =
+      showroom.showroomCode +
+      (taglessProducts.length + 1).toString().padStart(8, "0");
+    product.showroomName = showroom.showroomName;
+    product.sellPrice = sellPrice;
+    product.productGroup = productGroup;
+    product.productCode = productGroupCode.productCode;
+    product.unitCost = sellPrice;
+    product.size = req.body?.size;
+    product.tagless = true;
+
+    await product.save();
+
+    res.status(200).json(product);
+  } catch (e) {
+    res.status(400).json({ success: false, message: e.message });
+  }
+};

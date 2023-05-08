@@ -9,9 +9,9 @@ export const getBrands: ControllerFn = async (_req, res, _next) => {
 };
 
 export const createBrand: ControllerFn = async (req, res, next) => {
-  const { name } = req.body as Brand;
+  const { brandName } = req.body as Brand;
 
-  if (!name) {
+  if (!brandName) {
     return next(new ErrorHandler('Please provide a brand name', 404));
   }
 
@@ -23,26 +23,25 @@ export const createBrand: ControllerFn = async (req, res, next) => {
 };
 
 export const updateBrand: ControllerFn = async (req, res, next) => {
-  const { id } = req.params;
+  try {
+    const { id } = req.params;
 
-  const brand = await Brand.findOne({
-    where: { id }
-  });
+    const brand = await Brand.findOne({
+      where: { id }
+    });
 
-  if (!brand) {
-    return next(new ErrorHandler('Brand not found', 404));
+    if (!brand) {
+      return next(new ErrorHandler('Brand not found', 404));
+    }
+
+    Object.assign(brand, req.body);
+
+    await brand.save();
+
+    res.status(200).json(brand);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
-
-  const { name } = req.body as Brand;
-
-  await Brand.update(
-    {
-      id
-    },
-    { name }
-  );
-
-  res.status(200).json(brand);
 };
 
 export const deleteBrand: ControllerFn = async (req, res, next) => {
@@ -55,7 +54,7 @@ export const deleteBrand: ControllerFn = async (req, res, next) => {
   try {
     await Brand.delete({ id });
 
-    res.status(200).json({ message: 'Brand deleted successfully' });
+    res.status(200).json(await Brand.find());
   } catch (error) {
     res.status(200).json({ message: 'Brand Not Deleted', success: false });
   }

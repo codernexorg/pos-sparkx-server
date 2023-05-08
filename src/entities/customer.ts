@@ -1,47 +1,85 @@
 import {
-    BaseEntity,
-    Column,
-    CreateDateColumn,
-    Entity,
-    OneToMany,
-    PrimaryGeneratedColumn,
-    UpdateDateColumn
+  BaseEntity,
+  Column,
+  CreateDateColumn,
+  Entity,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from "typeorm";
-import {Product} from "./index";
+import Showroom from "./showroom";
+import Product from "./product";
 
 @Entity()
 export default class Customer extends BaseEntity {
-    @PrimaryGeneratedColumn()
-    id: number
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @Column()
-    customerName: string
+  @Column()
+  customerName: string;
 
-    @Column()
-    customerPhone: string
+  @Column()
+  customerPhone: string;
 
-    @Column({nullable: true})
-    customerEmail: string
+  @Column({ nullable: true })
+  customerEmail: string;
 
-    @Column({nullable: true})
+  @Column({ nullable: true })
+  customerAddress: string;
 
-    customerAddress: string
+  @Column({ nullable: true, default: 0 })
+  credit: number;
 
-    @Column({nullable: true, default: 0})
-    credit: number
+  @Column({ nullable: true, default: 0 })
+  paid: number;
 
-    @Column({nullable: true, default: 0})
-    due: number
+  @OneToMany(() => Product, (iv) => iv.purchasedCustomer, {
+    eager: true,
+    cascade: true,
+  })
+  purchasedProducts: Product[];
 
-    @Column({nullable: true, default: 0})
-    paid: number;
+  @OneToMany(() => Product, (rp) => rp.returnedCustomer, {
+    eager: true,
+    cascade: true,
+  })
+  returnedProducts: Product[];
 
-    @OneToMany(() => Product, p => p.customer)
-    products: Product[]
+  @ManyToOne(() => Showroom, (sr) => sr.customer, {
+    onDelete: "CASCADE",
+    onUpdate: "CASCADE",
+  })
+  showroom: Showroom;
 
-    @CreateDateColumn()
-    createdAt: Date
+  @Column({ nullable: true })
+  crm: string;
 
-    @UpdateDateColumn()
-    updatedAt: Date
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  addPurchase(product: Product): void {
+    if (this.purchasedProducts == null) {
+      this.purchasedProducts = new Array<Product>();
+    }
+    this.purchasedProducts.push(product);
+  }
+
+  returnPurchase(product: Product) {
+    if (this.returnedProducts == null) {
+      this.returnedProducts = new Array<Product>();
+    }
+    const productPurchased = this.purchasedProducts.find(
+      (p) => p.id === product.id
+    );
+    if (productPurchased) {
+      this.purchasedProducts = this.purchasedProducts.filter(
+        (p) => p.id !== product.id
+      );
+      this.returnedProducts.push(product);
+    }
+  }
 }

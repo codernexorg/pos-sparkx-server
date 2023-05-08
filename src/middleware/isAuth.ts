@@ -1,7 +1,8 @@
-import User from '../entities/user';
-import verifyToken from '../helper/verifyToken';
-import {ControllerFn, UserAccessLevel, UserRole} from '../types';
-import ErrorHandler from '../utils/errorHandler';
+import User from "../entities/user";
+import verifyToken from "../helper/verifyToken";
+import { ControllerFn, UserAccessLevel, UserRole } from "../types";
+import ErrorHandler from "../utils/errorHandler";
+import dataSource from "../typeorm.config";
 
 export const isAuth: ControllerFn = async (req, _res, next) => {
     const token = req.cookies.token as string | undefined || req.headers.authorization?.split(' ')[1];
@@ -11,11 +12,7 @@ export const isAuth: ControllerFn = async (req, _res, next) => {
 
     const userId = await verifyToken(token);
 
-    const user = await User.findOne({
-        where: {
-            id: userId
-        }
-    });
+    const user = await dataSource.getRepository(User).createQueryBuilder('user').where('user.id=:userId',{userId}).getOne()
 
     if (!user?.id) {
         return next(new ErrorHandler('Please Login', 401));

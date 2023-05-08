@@ -1,9 +1,15 @@
-import express from 'express';
-import {createUser, getUsers} from '../controller/user';
-import {isAuth, isSuperAdmin} from "../middleware/isAuth";
+import express from "express";
+import {
+  createUser,
+  deleteUser,
+  getUsers,
+  updateUser,
+} from "../controller/user";
+import { isAuth, isSuperAdmin } from "../middleware/isAuth";
 
-const router = express.Router();
+export const userRoutes = express.Router();
 
-router.route('/').post(createUser).get(isAuth, isSuperAdmin, getUsers);
-
-export default router;
+userRoutes.route("/").post(createUser).get(isAuth, isSuperAdmin, getUsers);
+userRoutes.route("/:id").patch(isAuth, isSuperAdmin, updateUser);
+userRoutes.route("/:id").delete(isAuth, isSuperAdmin, deleteUser);
+export default userRoutes;

@@ -4,8 +4,8 @@ import {
   CreateDateColumn,
   Entity,
   PrimaryGeneratedColumn,
-  UpdateDateColumn
-} from 'typeorm';
+  UpdateDateColumn,
+} from "typeorm";
 
 @Entity()
 export default class ProductGroup extends BaseEntity {

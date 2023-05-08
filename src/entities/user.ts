@@ -1,5 +1,12 @@
-import {BaseEntity, Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn} from 'typeorm';
-import {UserRole} from '../types';
+import {
+  BaseEntity,
+  Column,
+  CreateDateColumn,
+  Entity,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from "typeorm";
+import { UserRole } from "../types";
 
 @Entity()
 export default class User extends BaseEntity {
@@ -24,6 +31,7 @@ export default class User extends BaseEntity {
 
     @Column({default: UserRole.SA, type: 'enum', enum: UserRole})
     role: string;
+
 
     @CreateDateColumn()
     createdAt: Date;
