@@ -105,8 +105,6 @@ export const createReturnProduct: ControllerFn = async (req, res, _next) => {
           : customer.paid;
       customer.returnPurchase(product);
 
-      invoice.invoiceAmount = invoice.invoiceAmount - returnedAmount;
-      invoice.paidAmount = invoice.paidAmount - returnedAmount;
       invoice.returnProductFromInvoice(product);
 
       const employee = await dataSource
@@ -124,6 +122,9 @@ export const createReturnProduct: ControllerFn = async (req, res, _next) => {
 
       await Promise.all([product.save(), employee?.save()]);
     }
+    invoice.invoiceAmount = invoice.invoiceAmount - returnedAmount;
+    invoice.paidAmount = invoice.paidAmount - returnedAmount;
+    invoice.withoutTax = invoice.withTax - returnedAmount;
 
     // Save the changes to the database
     await Promise.all([customer.save(), invoice.save(), returned.save()]);

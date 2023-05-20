@@ -37,6 +37,7 @@ const mount = async (app: Application) => {
     "https://sparkxfashion.com",
     "http://localhost:3000",
     "http://localhost:5173",
+    "https://sparkx.udvabonibd.com",
   ];
   app.use(compression());
   app.use(
