@@ -6,27 +6,30 @@ import ErrorHandler from "../utils/errorHandler";
 import dataSource from "../typeorm.config";
 
 export const getCustomers: ControllerFn = async (req, res, _next) => {
-  const showroom = await dataSource
-    .getRepository(Showroom)
-    .createQueryBuilder("showroom")
-    .leftJoinAndSelect("showroom.customer", "customer")
-    .leftJoinAndSelect("customer.purchasedProducts", "purchasedProducts")
-    .leftJoinAndSelect("customer.returnedProducts", "returnedProducts")
-    .where("showroom.id=:id", { id: req.showroomId })
-    .getOne();
-  const customers =
-    showroom?.customer ||
-    (await dataSource
+  let customers;
+  if (req.showroomId) {
+    customers = await dataSource
+      .getRepository(Customer)
+      .createQueryBuilder("customer")
+      .leftJoinAndSelect("customer.showroom", "showroom")
+      .leftJoinAndSelect("customer.purchasedProducts", "purchasedProducts")
+      .leftJoinAndSelect("customer.returnedProducts", "returnedProducts")
+      .where("showroom.id=:id", { id: req.showroomId })
+      .getMany();
+  } else {
+    customers = await dataSource
       .getRepository(Customer)
       .createQueryBuilder("customer")
       .leftJoinAndSelect("customer.purchasedProducts", "purchasedProducts")
       .leftJoinAndSelect("customer.returnedProducts", "returnedProducts")
-      .getMany());
+      .getMany();
+  }
+
   res.status(200).json(customers);
 };
 export const createCustomer: ControllerFn = async (req, res, next) => {
   try {
-    const { customerName, customerPhone } = req.body as Customer;
+    const { customerName, customerPhone, showroomCode } = req.body;
 
     if (!customerName || !customerPhone) {
       return next(
@@ -48,7 +51,7 @@ export const createCustomer: ControllerFn = async (req, res, next) => {
       });
     } else {
       showroom = await Showroom.findOne({
-        where: { showroomCode: "HO" },
+        where: { showroomCode: showroomCode },
       });
     }
 
@@ -113,28 +116,42 @@ export const importCustomers: ControllerFn = async (req, res, next) => {
 
     const data: any[] = xlsx.utils.sheet_to_json(sheet);
 
-
-    const requiredFieldsCustomer:{key:keyof {customerName:string,customerPhone:string,showroomCode:string},label:string}[] = [
-      { key: 'customerName', label: 'Customer Name' },
-      { key: 'customerPhone', label: 'Customer Phone' },
-      { key: 'showroomCode', label: 'Showroom Code' },
+    const requiredFieldsCustomer: {
+      key: keyof {
+        customerName: string;
+        customerPhone: string;
+        showroomCode: string;
+      };
+      label: string;
+    }[] = [
+      { key: "customerName", label: "Customer Name" },
+      { key: "customerPhone", label: "Customer Phone" },
+      { key: "showroomCode", label: "Showroom Code" },
     ];
 
     for (const customer of data) {
-      const missingFields = requiredFieldsCustomer.filter(field => !customer[field.key]);
+      const missingFields = requiredFieldsCustomer.filter(
+        (field) => !customer[field.key]
+      );
 
       if (missingFields.length > 0) {
-        const missingFieldsLabels = missingFields.map((field) => field.label).join(', ');
-        return next(new ErrorHandler(`Customer is missing value(s) for ${missingFieldsLabels}`,404)) ;
+        const missingFieldsLabels = missingFields
+          .map((field) => field.label)
+          .join(", ");
+        return next(
+          new ErrorHandler(
+            `Customer is missing value(s) for ${missingFieldsLabels}`,
+            404
+          )
+        );
       }
     }
-
 
     data.every(async (items) => {
       const showroom = await dataSource
         .getRepository(Showroom)
         .createQueryBuilder("showroom")
-        .leftJoinAndSelect('showroom.customers','customers')
+        .leftJoinAndSelect("showroom.customers", "customers")
         .where("showroom.showroomCode=:showroomCode", {
           showroomCode: items.showroomCode,
         })

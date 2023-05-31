@@ -122,7 +122,7 @@ const mount = async (app: Application) => {
   app.use("/api/v1/tax", isAuth, commonAuth, taxRoutes);
   app.use("/api/v1/business", isAuth, commonAuth, businessRoutes);
   app.use("/api/v1/db", seedRoutes);
-  app.use("/api/v1/reports", isAuth, commonAuth, reportsRoutes);
+  app.use("/api/v1/reports", isAuth, commonAuth, showRoomAccess, reportsRoutes);
   // app.use("/api/v1/expense", isAuth, commonAuth, showRoomAccess, expense);
   app.get("/api/v1/audit", isAuth, commonAuth, getAudit);
   app.use(errorMiddleware);

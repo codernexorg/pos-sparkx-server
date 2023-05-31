@@ -47,7 +47,7 @@ export default class Customer extends BaseEntity {
   returnedProducts: Product[];
 
   @ManyToOne(() => Showroom, (sr) => sr.customer, {
-    onDelete: "CASCADE",
+    onDelete: "SET NULL",
     onUpdate: "CASCADE",
   })
   showroom: Showroom;
