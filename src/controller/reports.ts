@@ -840,17 +840,29 @@ export default class ReportController {
   }
 
   public static async returnReport(
-    req: Request,
+    req: Request & { showroomId?: number },
     res: Response,
     _next: NextFunction
   ) {
     try {
-      const returnRaw = await dataSource
-        .getRepository(Returned)
-        .createQueryBuilder("r")
-        .leftJoinAndSelect("r.products", "products")
-        .leftJoinAndSelect("products.employee", "employee")
-        .getMany();
+      let returnRaw: Returned[];
+      if (req.showroomId) {
+        returnRaw = await dataSource
+          .getRepository(Returned)
+          .createQueryBuilder("r")
+          .leftJoinAndSelect("r.products", "products")
+          .leftJoinAndSelect("r.showroom", "showroom")
+          .leftJoinAndSelect("products.employee", "employee")
+          .where("showroom.id=:id", { id: req.showroomId })
+          .getMany();
+      } else {
+        returnRaw = await dataSource
+          .getRepository(Returned)
+          .createQueryBuilder("r")
+          .leftJoinAndSelect("r.products", "products")
+          .leftJoinAndSelect("products.employee", "employee")
+          .getMany();
+      }
 
       const formattedReturn = returnRaw.map((r, id) => {
         return {
@@ -929,10 +941,10 @@ export const salesQtyReport: ControllerFn = async (req, res, _next) => {
   try {
     const { to_date, from_date = new Date(Date.now()), today } = req.query;
 
-    let qb: any;
+    let qb;
 
     if (req.showroomId) {
-      qb = await dataSource
+      qb = dataSource
         .getRepository(Showroom)
         .createQueryBuilder("showroom")
         .leftJoinAndSelect("showroom.invoices", "invoice")
@@ -943,7 +955,7 @@ export const salesQtyReport: ControllerFn = async (req, res, _next) => {
         .orderBy("createdAt")
         .groupBy("Date(invoice.createdAt)");
     } else {
-      qb = await dataSource
+      qb = dataSource
         .getRepository(Invoice)
         .createQueryBuilder("invoice")
         .select(
@@ -975,7 +987,6 @@ export const salesQtyReport: ControllerFn = async (req, res, _next) => {
       };
     });
 
-    console.log(formattedData);
     res.status(200).json(formattedData);
   } catch (err) {
     res.status(500).json({ message: err.message });

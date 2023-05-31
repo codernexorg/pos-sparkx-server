@@ -85,98 +85,97 @@ export const getUsers: ControllerFn = async (_req, res, _next) => {
 };
 
 export const loginUser: ControllerFn = async (req, res, next) => {
-  try{
+  try {
     const { usernameOrEmail, password } = req.body as LoginInput;
     if (!usernameOrEmail || !password) {
-      return next(new ErrorHandler('Please enter valid information', 404));
+      return next(new ErrorHandler("Please enter valid information", 404));
     }
 
     const user = await User.findOne({
-      where: usernameOrEmail.includes('@')
-          ? {
-            email: usernameOrEmail
+      where: usernameOrEmail.includes("@")
+        ? {
+            email: usernameOrEmail,
           }
-          : {
-            username: usernameOrEmail
-          }
+        : {
+            username: usernameOrEmail,
+          },
     });
 
     if (!user) {
-      return next(new ErrorHandler('Invalid User or Password', 404));
+      return next(new ErrorHandler("Invalid User or Password", 404));
     }
     const isValid = await bcrypt.compare(password, user.password);
 
     if (!isValid) {
-      return next(new ErrorHandler('Invalid User or Password', 404));
+      return next(new ErrorHandler("Invalid User or Password", 404));
     }
 
     const token = jwt.sign({ userId: user.id }, sanitizedConfig.JWT_SECRET, {
-      expiresIn: 1000 * 60 * 60 * 24 * 365
+      expiresIn: 1000 * 60 * 60 * 24 * 365,
     });
 
     return sendToken(token, user, res, next);
-  }catch (e) {
-    res.status(500).json({success: false,message:e.message})
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
   }
 };
 
 export const logoutUser: ControllerFn = async (_req, res, _next) => {
- try{
-   res
-       .clearCookie('token', { expires: new Date(Date.now()) })
-       .status(200)
-       .json({ success: true, message: 'Logout Success' });
- }catch (e) {
-   res.status(500).json({message:e.message})
- }
+  try {
+    res
+      .clearCookie("token", { expires: new Date(Date.now()) })
+      .status(200)
+      .json({ success: true, message: "Logout Success" });
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
 };
 
+export const updateUser: ControllerFn = async (req, res, next) => {
+  try {
+    const { id } = req.params;
 
-export const updateUser: ControllerFn = async (_req, res, next) =>{
- try{
-   const {id}=_req.params
-   const {password}=_req.body
+    const user = await User.findOne({ where: { id } });
 
-   const user= await User.findOne({where:{id}})
+    if (!user) {
+      return next(new ErrorHandler("No User Found", 404));
+    }
 
-   if(!user){
-     return next(new ErrorHandler('No User Found',404))
-   }
+    let hashPwd: string;
 
-   let hashPwd:string;
-   console.log(user)
+    if (req.body.password.length > 0) {
+      hashPwd = await bcrypt.hash(req.body.password, 10);
+      user.password = hashPwd;
+    }
+    user.name = req.body?.name;
+    user.email = req.body?.email;
+    user.assignedShowroom = req.body?.assignedShowroom;
+    user.role = req.body?.role;
+    user.username = req.body?.username;
 
-   if(password){
-     hashPwd=await bcrypt.hash(password, 10);
-     Object.assign(user,{..._req.body,password:hashPwd})
-   }else{
-     Object.assign(user,_req.body)
-   }
+    await user.save();
 
-   await user.save()
+    res.status(200).json(user);
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+};
 
-   res.status(200).json(user)
- }catch (e) {
-   res.status(500).json({message:e.message})
- }
+export const deleteUser: ControllerFn = async (req, res, next) => {
+  try {
+    const { id } = req.params;
 
-}
+    const user = await User.findOne({ where: { id } });
 
-export const deleteUser:ControllerFn=async (req,res,next)=>{
- try {
-   const {id}=req.params
+    if (!user) {
+      return next(new ErrorHandler("No User Found", 404));
+    }
+    if (user.role === UserRole.SA)
+      return next(new ErrorHandler("Admin Account Can'\t be deleted", 404));
+    await user.remove();
 
-   const user= await User.findOne({where:{id}})
-
-   if(!user){
-     return next(new ErrorHandler('No User Found',404))
-   }
-   if(user.role===UserRole.SA)return  next(new ErrorHandler('Admin Account Can\'\t be deleted',404))
-   await user.remove()
-
-   res.status(200).json(await User.find())
- }catch (e) {
-   res.status(500).json({message:e.message})
- }
-}
-
+    res.status(200).json(await User.find());
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+};
