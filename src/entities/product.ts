@@ -15,6 +15,7 @@ import Invoice from "./invoice";
 import Customer from "./customer";
 import Employee from "./employee";
 import Returned from "./Returned";
+import HoldInvoice from "./holdInvoice";
 
 @Entity()
 export default class Product extends BaseEntity {
@@ -155,6 +156,11 @@ export default class Product extends BaseEntity {
   @Column({ type: "boolean", default: false })
   tagless: boolean;
 
+  @ManyToOne(() => HoldInvoice, (h) => h.items, {
+    onDelete: "CASCADE",
+    onUpdate: "CASCADE",
+  })
+  hold: HoldInvoice;
   @CreateDateColumn()
   createdAt: Date;
 

@@ -79,10 +79,16 @@ export default class Invoice extends BaseEntity {
   netAmount: number;
 
   @Column({ type: "float", nullable: true })
-  withoutTax: number;
+  subtotal: number;
 
   @Column({ type: "float", nullable: true })
-  withTax: number;
+  cash: number;
+
+  @Column({ type: "float", nullable: true })
+  bkash: number;
+
+  @Column({ type: "float", nullable: true })
+  cbl: number;
 
   @Column({ nullable: true, type: "float" })
   paidAmount: number;
@@ -96,15 +102,6 @@ export default class Invoice extends BaseEntity {
   vat: number;
   @Column({ nullable: true, type: "int" })
   quantity: number;
-
-  // @OneToOne(() => Returned, {
-  //   eager: true,
-  //   onDelete: "SET NULL",
-  //   onUpdate: "CASCADE",
-  //   cascade: true,
-  // })
-  // @JoinColumn()
-  // returned: Returned;
 
   @OneToOne(() => Payment, {
     eager: true,

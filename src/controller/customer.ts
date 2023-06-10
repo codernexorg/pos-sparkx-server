@@ -4,6 +4,9 @@ import Showroom from "../entities/showroom";
 import { ControllerFn } from "../types";
 import ErrorHandler from "../utils/errorHandler";
 import dataSource from "../typeorm.config";
+import { getShowroom } from "../utils/showroom";
+import { getCustomer } from "../utils/customer";
+import { customerRepository, showroomRepository } from "../utils";
 
 export const getCustomers: ControllerFn = async (req, res, _next) => {
   let customers;
@@ -21,6 +24,7 @@ export const getCustomers: ControllerFn = async (req, res, _next) => {
       .getRepository(Customer)
       .createQueryBuilder("customer")
       .leftJoinAndSelect("customer.purchasedProducts", "purchasedProducts")
+      .leftJoinAndSelect("customer.showroom", "showroom")
       .leftJoinAndSelect("customer.returnedProducts", "returnedProducts")
       .getMany();
   }
@@ -36,33 +40,40 @@ export const createCustomer: ControllerFn = async (req, res, next) => {
         new ErrorHandler("Customer Name and Phone are required", 400)
       );
     }
-    const isExist = await Customer.findOne({ where: { customerPhone } });
+    const isExist = await getCustomer({ customerPhone });
+
+    console.log(isExist);
 
     if (isExist) {
       return next(
         new ErrorHandler("Customer with this Phone already exists", 400)
       );
     }
-    let showroom;
+    let showroom: Showroom | null;
 
     if (req.showroomId) {
-      showroom = await Showroom.findOne({
-        where: { id: req.showroomId },
-      });
+      showroom = await getShowroom({ id: req.showroomId });
     } else {
-      showroom = await Showroom.findOne({
-        where: { showroomCode: showroomCode },
-      });
+      showroom = await getShowroom({ showroomCode: showroomCode });
     }
 
     if (!showroom) {
       return next(new ErrorHandler("Showroom not found", 400));
     }
 
-    const customer = Customer.create(req.body);
+    //Creating Customer
+
+    const customer = new Customer();
+    customer.customerPhone = customerPhone;
+    customer.customerName = customerName;
+    customer.customerEmail = req.body?.customerEmail;
+    customer.customerAddress = req.body?.customerAddress;
+
+    // Adding Customer to showroom
     showroom.customer.push(customer);
-    await showroom.save();
-    await customer.save();
+    await showroomRepository.save(showroom);
+    await customerRepository.save(customer);
+
     res.status(201).json(customer);
   } catch (e) {
     res.status(400).json({ message: e.message });

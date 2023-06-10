@@ -306,7 +306,6 @@ export const importProduct = async (
       { key: "sellPrice", label: "Sell Price" },
       { key: "sellingStatus", label: "Product Status" },
       { key: "productCode", label: "Product Code" },
-      { key: "whName", label: "Current Location (whName)" },
     ];
 
     for (const product of data) {
