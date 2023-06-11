@@ -31,10 +31,10 @@ export const updateShowroom: ControllerFn = async (req, res, next) => {
 
     const showroom = await Showroom.findOne({
       where: { id },
-      relations: { invoices: true }
+      relations: { invoices: true },
     });
     if (!showroom) {
-      return next(new ErrorHandler('Showroom Does not exist', 404));
+      return next(new ErrorHandler("Showroom Does not exist", 404));
     }
 
     Object.assign(showroom, req.body);
@@ -43,7 +43,7 @@ export const updateShowroom: ControllerFn = async (req, res, next) => {
     res.status(200).json(showroom);
   } catch (error) {
     console.log(
-      '🚀 ~ file: shoroom.ts:35 ~ constupdateShowroom:ControllerFn= ~ error:',
+      "🚀 ~ file: shoroom.ts:35 ~ constupdateShowroom:ControllerFn= ~ error:",
       error
     );
     res.status(500).json({ message: error.message });
@@ -55,10 +55,10 @@ export const deleteShowroom: ControllerFn = async (req, res, next) => {
 
     const showroom = await Showroom.findOne({
       where: { id },
-      relations: { invoices: true }
+      relations: { invoices: true },
     });
     if (!showroom) {
-      return next(new ErrorHandler('Showroom Does not exist', 404));
+      return next(new ErrorHandler("Showroom Does not exist", 404));
     }
 
     Object.assign(showroom, req.body);
@@ -69,14 +69,17 @@ export const deleteShowroom: ControllerFn = async (req, res, next) => {
       .json(await Showroom.find({ relations: { invoices: true } }));
   } catch (e) {
     console.log(
-      '🚀 ~ file: shoroom.ts:66 ~ constdeleteShowroom:ControllerFn= ~ e:',
+      "🚀 ~ file: shoroom.ts:66 ~ constdeleteShowroom:ControllerFn= ~ e:",
       e
     );
     res.status(500).json({ message: e.message });
   }
 };
 export const getShowroom: ControllerFn = async (_req, res) => {
-  const showrooms = await dataSource.getRepository(Showroom).createQueryBuilder('showroom')
-      .leftJoinAndSelect('showroom.invoices', 'invoices').leftJoinAndSelect('showroom.returned', 'returned').getMany()
+  const showrooms = await dataSource
+    .getRepository(Showroom)
+    .createQueryBuilder("showroom")
+    .leftJoinAndSelect("showroom.invoices", "invoices")
+    .getMany();
   return res.status(200).json(showrooms);
 };

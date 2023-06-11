@@ -11,7 +11,6 @@ import Expenses from "./expenses";
 import Customer from "./customer";
 import Invoice from "./invoice";
 import Employee from "./employee";
-import Returned from "./Returned";
 import Purchase from "./purchase";
 
 @Entity()
@@ -35,7 +34,7 @@ export default class Showroom extends BaseEntity {
     eager: true,
   })
   expenses: Expenses[];
-  
+
   @OneToMany(() => Customer, (cm) => cm.showroom, {
     cascade: true,
     eager: true,
@@ -53,9 +52,6 @@ export default class Showroom extends BaseEntity {
     cascade: true,
   })
   employees: Employee[];
-
-  @OneToMany(() => Returned, (r) => r.showroom, { cascade: true, eager: true })
-  returned: Returned[];
 
   @OneToMany(() => Purchase, (p) => p.showroom, { cascade: true, eager: true })
   purchases: Purchase[];

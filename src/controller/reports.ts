@@ -11,7 +11,6 @@ import Product from "../entities/product";
 import Showroom from "../entities/showroom";
 import Customer from "../entities/customer";
 import { ControllerFn, PaymentMethod } from "../types";
-import Returned from "../entities/Returned";
 
 interface MonthlySales {
   [month: string]: number;
@@ -834,58 +833,6 @@ export default class ReportController {
           .getRawMany();
         res.status(200).json(sales);
       }
-    } catch (e) {
-      res.status(404).json({ message: e.message });
-    }
-  }
-
-  public static async returnReport(
-    req: Request & { showroomId?: number },
-    res: Response,
-    _next: NextFunction
-  ) {
-    try {
-      let returnRaw: Returned[];
-      if (req.showroomId) {
-        returnRaw = await dataSource
-          .getRepository(Returned)
-          .createQueryBuilder("r")
-          .leftJoinAndSelect("r.products", "products")
-          .leftJoinAndSelect("r.showroom", "showroom")
-          .leftJoinAndSelect("products.employee", "employee")
-          .where("showroom.id=:id", { id: req.showroomId })
-          .getMany();
-      } else {
-        returnRaw = await dataSource
-          .getRepository(Returned)
-          .createQueryBuilder("r")
-          .leftJoinAndSelect("r.products", "products")
-          .leftJoinAndSelect("products.employee", "employee")
-          .getMany();
-      }
-
-      const formattedReturn = returnRaw.map((r, id) => {
-        return {
-          id,
-          day: wdate(moment(r.createdAt, "DD-MM-YYYY").isoWeekday()),
-          date: moment(r.createdAt).format("DD-MM-YYYY"),
-          tagPrice: r.products.flatMap((p) => p.sellPrice),
-          finalPrice: r.products.flatMap((p) => p.sellPriceAfterDiscount),
-          invoiceNo: r.invoiceNo,
-          seller: r.products.flatMap((p) => ({
-            empName: p.employee.empName,
-            empPhone: p.employee.empPhone,
-          })),
-          check: r.check,
-          customer: r.customerPhone,
-          products: r.products.flatMap((p) => ({
-            itemCode: p.itemCode,
-            productName: p.productGroup,
-          })),
-        };
-      });
-
-      res.status(200).json(formattedReturn);
     } catch (e) {
       res.status(404).json({ message: e.message });
     }

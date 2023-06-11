@@ -14,7 +14,6 @@ import Purchase from "./purchase";
 import Invoice from "./invoice";
 import Customer from "./customer";
 import Employee from "./employee";
-import Returned from "./Returned";
 import HoldInvoice from "./holdInvoice";
 
 @Entity()
@@ -128,12 +127,6 @@ export default class Product extends BaseEntity {
     onUpdate: "CASCADE",
   })
   returnedCustomer: Customer;
-
-  @ManyToOne(() => Returned, (returnProduct) => returnProduct.products, {
-    onDelete: "SET NULL",
-    onUpdate: "SET NULL",
-  })
-  returned: Returned;
 
   @ManyToOne(() => Customer, (customer) => customer.purchasedProducts, {
     onDelete: "SET NULL",

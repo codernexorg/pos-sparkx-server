@@ -288,8 +288,6 @@ export const getInvoices: ControllerFn = async (req, res, _next) => {
 
     const invoices = await qb.getMany();
 
-    console.log(invoices);
-
     res.status(200).json(invoices);
   } catch (er) {
     console.log(er.message);

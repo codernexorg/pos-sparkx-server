@@ -26,5 +26,4 @@ reportsRoutes.get(
 reportsRoutes.get("/inventory/size", ReportController.inventorySizeReport);
 reportsRoutes.get("/top/customer", getTopCustomer);
 reportsRoutes.get("/unit", reportController.unitToUnitComparison);
-reportsRoutes.get("/return", ReportController.returnReport);
 export default reportsRoutes;

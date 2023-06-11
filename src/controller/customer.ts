@@ -42,8 +42,6 @@ export const createCustomer: ControllerFn = async (req, res, next) => {
     }
     const isExist = await getCustomer({ customerPhone });
 
-    console.log(isExist);
-
     if (isExist) {
       return next(
         new ErrorHandler("Customer with this Phone already exists", 400)
