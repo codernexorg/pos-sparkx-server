@@ -16,6 +16,7 @@ import Employee from "./employee";
 import Showroom from "./showroom";
 import { filter, find } from "underscore";
 import Payment from "./Payment";
+import ReturnProduct from "./returnProduct";
 
 @Entity()
 export default class Invoice extends BaseEntity {
@@ -72,27 +73,27 @@ export default class Invoice extends BaseEntity {
   })
   employee: Employee;
 
-  @Column({ type: "float", nullable: true })
+  @Column({ type: "float", nullable: true, default: 0 })
   invoiceAmount: number;
 
-  @Column({ type: "float", nullable: true })
+  @Column({ type: "float", nullable: true, default: 0 })
   netAmount: number;
 
-  @Column({ type: "float", nullable: true })
+  @Column({ type: "float", nullable: true, default: 0 })
   subtotal: number;
 
-  @Column({ type: "float", nullable: true })
+  @Column({ type: "float", nullable: true, default: 0 })
   cash: number;
 
-  @Column({ type: "float", nullable: true })
+  @Column({ type: "float", nullable: true, default: 0 })
   bkash: number;
 
-  @Column({ type: "float", nullable: true })
+  @Column({ type: "float", nullable: true, default: 0 })
   cbl: number;
 
-  @Column({ nullable: true, type: "float" })
+  @Column({ nullable: true, type: "float", default: 0 })
   paidAmount: number;
-  @Column({ nullable: true, type: "float" })
+  @Column({ nullable: true, type: "float", default: 0 })
   changeAmount: number;
 
   @Column({ nullable: true, default: 0, type: "float" })
@@ -103,6 +104,9 @@ export default class Invoice extends BaseEntity {
   @Column({ nullable: true, type: "int" })
   quantity: number;
 
+  @Column({ nullable: true, default: 0 })
+  returnQuantity: number;
+
   @OneToOne(() => Payment, {
     eager: true,
     onDelete: "SET NULL",
@@ -111,19 +115,17 @@ export default class Invoice extends BaseEntity {
   @JoinColumn()
   paymentMethod: Payment;
 
+  @OneToOne(() => ReturnProduct, {
+    eager: true,
+    onDelete: "SET NULL",
+    onUpdate: "CASCADE",
+  })
+  @JoinColumn()
+  returned: ReturnProduct;
+
   @CreateDateColumn()
   createdAt: Date;
 
   @UpdateDateColumn()
   updatedAt: Date;
-
-  returnProductFromInvoice(product: Product): void {
-    const productFromInvoice = find(this.products, (p) => p.id === product.id);
-    if (productFromInvoice) {
-      this.products = filter(
-        this.products,
-        (p) => p.id !== productFromInvoice.id
-      );
-    }
-  }
 }

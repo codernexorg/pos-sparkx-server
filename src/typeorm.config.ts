@@ -23,6 +23,7 @@ import BarcodeDefault from "./entities/barcodeDefault";
 import Account from "./entities/account";
 import Payment from "./entities/Payment";
 import HoldInvoice from "./entities/holdInvoice";
+import ReturnProduct from "./entities/returnProduct";
 
 const appDataSource = new DataSource({
   type: "mysql",
@@ -57,6 +58,7 @@ const appDataSource = new DataSource({
     Account,
     Payment,
     HoldInvoice,
+    ReturnProduct,
   ],
 });
 

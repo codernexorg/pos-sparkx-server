@@ -4,6 +4,7 @@ import ReportController, {
   salesAmountReport,
   salesQtyReport,
 } from "../controller/reports";
+import { getReturnReport } from "../controller/returnController";
 
 export const reportsRoutes = express.Router();
 
@@ -26,4 +27,6 @@ reportsRoutes.get(
 reportsRoutes.get("/inventory/size", ReportController.inventorySizeReport);
 reportsRoutes.get("/top/customer", getTopCustomer);
 reportsRoutes.get("/unit", reportController.unitToUnitComparison);
+
+reportsRoutes.get("/return", getReturnReport);
 export default reportsRoutes;

@@ -3,6 +3,7 @@ import Customer from "../entities/customer";
 import Employee from "../entities/employee";
 import Invoice from "../entities/invoice";
 import Product from "../entities/product";
+import ReturnProduct from "../entities/returnProduct";
 import Showroom from "../entities/showroom";
 import dataSource from "../typeorm.config";
 import {
@@ -30,6 +31,8 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
       cash,
       bkash,
       cbl,
+      salesTime,
+      returnId,
     } = req.body as {
       items: Product[];
       subtotal: number;
@@ -45,6 +48,8 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
       cash: number;
       bkash: number;
       cbl: number;
+      salesTime: string;
+      returnId: number | null;
     };
 
     //Checking IF Payment Method Selected
@@ -136,11 +141,6 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
 
     // Calculating Subtotal with Tax Amount
     const withTax = netAmount + Math.round((subtotal / 100) * vat);
-
-    if (paidAmount < withTax) {
-      return next(new ErrorHandler("Please Provide Amount Correctly", 404));
-    }
-
     // Initiating Product To Sell
 
     const products = await dataSource
@@ -194,6 +194,29 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
     invoice.cbl = cbl;
     invoice.bkash = bkash;
     invoice.vat = vat;
+
+    if (returnId) {
+      const returned = await dataSource
+        .getRepository(ReturnProduct)
+        .createQueryBuilder("re")
+        .where("re.id=:returnId", { returnId })
+        .getOne();
+      if (!returned) {
+        return next(new ErrorHandler("Return Not Found On DB", 404));
+      }
+      invoice.invoiceAmount -= returned.amount;
+      invoice.netAmount -= returned.amount;
+      invoice.bkash -= returned.bkash;
+      invoice.cash -= returned.cash;
+      invoice.cbl -= returned.cbl;
+
+      invoice.returned = returned;
+    }
+
+    // Sells Time Manual
+    if (salesTime) {
+      invoice.createdAt = new Date(salesTime);
+    }
 
     //Updating invoice & Pushing into showroom
 

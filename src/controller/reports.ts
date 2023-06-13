@@ -10,7 +10,7 @@ import Employee from "../entities/employee";
 import Product from "../entities/product";
 import Showroom from "../entities/showroom";
 import Customer from "../entities/customer";
-import { ControllerFn, PaymentMethod } from "../types";
+import { ControllerFn } from "../types";
 
 interface MonthlySales {
   [month: string]: number;
@@ -190,63 +190,61 @@ export default class ReportController {
         const currentYear = moment(iv.createdAt).format("YYYY");
         const isDateExist = dailySales.findIndex((i) => i.date === currentDate);
 
+        const totalAmount = iv.cash + iv.bkash + iv.cbl;
+
         if (isDateExist !== -1) {
+          //Sales Total
           dailySales[isDateExist].total =
-            dailySales[isDateExist].total + iv.invoiceAmount;
+            dailySales[isDateExist].total + totalAmount;
+
+          // Sales Quantity
           dailySales[isDateExist].quantity =
             dailySales[isDateExist].quantity + iv.quantity;
+          // Tagless Product Sales Total
           dailySales[isDateExist].taglessTotal =
             dailySales[isDateExist].taglessTotal +
             iv.products
               .filter((p) => p.tagless)
               .reduce((a, b) => a + b.sellPriceAfterDiscount, 0);
+          // Tagged Product Sales Total
           dailySales[isDateExist].withOutTaglessTotal =
             dailySales[isDateExist].withOutTaglessTotal +
             iv.products
               .filter((p) => !p.tagless)
               .reduce((a, b) => a + b.sellPriceAfterDiscount, 0);
+
           dailySales[isDateExist].year = currentYear;
           dailySales[isDateExist].month = currentMonth;
           dailySales[isDateExist].date = currentDate;
-          if (iv.paymentMethod.paymentMethod === PaymentMethod.BKASH) {
-            dailySales[isDateExist].bkashAmount += iv.invoiceAmount;
-          } else if (iv.paymentMethod.paymentMethod === PaymentMethod.CASH) {
-            dailySales[isDateExist].cashAmount += iv.invoiceAmount;
-          } else {
-            dailySales[isDateExist].cblAmount += iv.invoiceAmount;
-          }
+          dailySales[isDateExist].bkashAmount += iv.bkash;
+          dailySales[isDateExist].cashAmount += iv.cash;
+          dailySales[isDateExist].cblAmount += iv.cbl;
           dailySales[isDateExist].gapAmount =
             dailySales[isDateExist].total -
             (dailySales[isDateExist].cashAmount +
               dailySales[isDateExist].bkashAmount +
               dailySales[isDateExist].cblAmount);
         } else {
+          //Tagless Total
           const taglessTotal = iv.products
             .filter((p) => p.tagless)
             .reduce((a, b) => a + b.sellPriceAfterDiscount, 0);
+
+          //Without Tagless Total
           const withOutTaglessTotal = iv.products
             .filter((p) => !p.tagless)
             .reduce((a, b) => a + b.sellPriceAfterDiscount, 0);
 
-          const bkashAmount =
-            iv.paymentMethod.paymentMethod === PaymentMethod.BKASH
-              ? iv.invoiceAmount
-              : 0;
-          const cblAmount =
-            iv.paymentMethod.paymentMethod === PaymentMethod.CBL
-              ? iv.invoiceAmount
-              : 0;
-          const cashAmount =
-            iv.paymentMethod.paymentMethod === PaymentMethod.CASH
-              ? iv.invoiceAmount
-              : 0;
-          const gapAmount =
-            iv.invoiceAmount - (cashAmount + bkashAmount + cblAmount);
+          //Tot
+          const bkashAmount = iv.bkash;
+          const cblAmount = iv.cbl;
+          const cashAmount = iv.cash;
+          const gapAmount = iv.invoiceAmount - totalAmount;
           dailySales.push({
             date: currentDate,
             month: currentMonth,
             quantity: iv.quantity,
-            total: iv.invoiceAmount,
+            total: totalAmount,
             taglessTotal,
             withOutTaglessTotal,
             year: currentYear,
@@ -314,24 +312,38 @@ export default class ReportController {
       const date = moment(Number(month), "M", true).format("YYYY-MM-DD");
       //
       //Start OF Month
-      const startOfMonth = moment(date).startOf("month").format("YYYY-MM-DD");
+      const startOfMonth = moment(date).startOf("month").format("MMMM-YYYY");
       //End OF Month
-      const endOfMonth = moment(date).endOf("month").format("YYYY-MM-DD");
+      const endOfMonth = moment(date).endOf("month").format("MMMM-YYYY");
       const showroomData = await dataSource
         .getRepository(Showroom)
         .createQueryBuilder("showroom")
+        .leftJoinAndSelect("showroom.employees", "employees")
         .where("showroom.showroomCode=:showroomCode", {
           showroomCode: showroom as string,
         })
         .getOne();
+
+      if (!showroomData) {
+        return _next(
+          new ErrorHandler("Happeing Problem To Find Showroom", 404)
+        );
+      }
+
       const data = await dataSource
         .getRepository(Employee)
         .createQueryBuilder("emp")
         .leftJoinAndSelect("emp.sales", "sales")
         .leftJoinAndSelect("emp.returnSales", "returnSales")
-        .where("emp.showroom=:showroom", { showroom: showroomData?.id })
-        .andWhere("emp.updatedAt >= :start_date", { start_date: startOfMonth })
-        .andWhere("emp.updatedAt <= :end_date", { end_date: endOfMonth })
+        .leftJoinAndSelect("emp.showroom", "showroom")
+        .where("showroom.id = :id", { id: showroomData.id })
+        .andWhere(
+          'DATE_FORMAT(sales.updatedAt,"%M-%Y") >= :start_date AND DATE_FORMAT(sales.updatedAt,"%M-%Y") <= :end_date',
+          {
+            start_date: startOfMonth,
+            end_date: endOfMonth,
+          }
+        )
         .getMany();
 
       const newData = data.map((employee) => {

@@ -1,3 +1,4 @@
+import { In } from "typeorm";
 import HoldInvoice from "../entities/holdInvoice";
 import Product from "../entities/product";
 import dataSource from "../typeorm.config";
@@ -8,16 +9,12 @@ export const createHoldInvoice: ControllerFn = async (req, res, next) => {
   try {
     const prevHold = await dataSource.getRepository(HoldInvoice).find();
     const hold = new HoldInvoice();
+    const itemCodes = req.body.items.map((item: any) => item.itemCode);
 
     const products = await dataSource
       .getRepository(Product)
-      .createQueryBuilder("p")
-      .where("p.itemCode IN(:...itemCode)", {
-        itemCode: req.body.items.map((item: any) => ({
-          itemCode: item.itemCode,
-        })),
-      })
-      .getMany();
+      .find({ where: { itemCode: In(itemCodes) } });
+
     hold.bkash = req.body.bkash;
     hold.cash = req.body.cash;
     hold.cbl = req.body.cbl;
@@ -31,7 +28,7 @@ export const createHoldInvoice: ControllerFn = async (req, res, next) => {
     hold.subtotal = req.body?.subtotal;
     hold.invoiceNo = "HOLD" + (prevHold.length + 1).toString().padStart(6, "0");
 
-    hold.save();
+    await dataSource.getRepository(HoldInvoice).save(hold);
 
     res.status(201).json(hold);
   } catch (err) {

@@ -5,6 +5,7 @@ import {
   Entity,
   ManyToMany,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from "typeorm";
@@ -15,6 +16,7 @@ import Invoice from "./invoice";
 import Customer from "./customer";
 import Employee from "./employee";
 import HoldInvoice from "./holdInvoice";
+import ReturnProduct from "./returnProduct";
 
 @Entity()
 export default class Product extends BaseEntity {
@@ -76,8 +78,8 @@ export default class Product extends BaseEntity {
   })
   sellingStatus: ProductStatus;
 
-  @Column({ default: 0 })
-  returnStatus: number;
+  @Column({ default: false })
+  returnStatus: boolean;
 
   @Column({ nullable: true })
   deliveryDate: Date;
@@ -150,10 +152,17 @@ export default class Product extends BaseEntity {
   tagless: boolean;
 
   @ManyToOne(() => HoldInvoice, (h) => h.items, {
-    onDelete: "CASCADE",
+    onDelete: "SET NULL",
     onUpdate: "CASCADE",
   })
   hold: HoldInvoice;
+
+  @ManyToOne(() => ReturnProduct, (r) => r.returnProducts, {
+    onDelete: "CASCADE",
+    onUpdate: "CASCADE",
+  })
+  returnProduct: ReturnProduct;
+
   @CreateDateColumn()
   createdAt: Date;
 

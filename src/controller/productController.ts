@@ -300,7 +300,6 @@ export const importProduct = async (
     const requiredFields: { key: keyof Product; label: string }[] = [
       { key: "itemCode", label: "Item Code" },
       { key: "showroomName", label: "Showroom Name" },
-      { key: "lotNumber", label: "Lot Number" },
       { key: "unitCost", label: "Unit Cost" },
       { key: "productGroup", label: "Product Group" },
       { key: "sellPrice", label: "Sell Price" },
@@ -352,6 +351,7 @@ export const importProduct = async (
       totalItem: product?.totalItem,
       transportationCost: product?.transportationCost,
       purchaseName: product?.purchaseName,
+      sellingStatus: product?.sellingStatus,
     }));
 
     // Use a single transaction to insert all products
@@ -550,5 +550,101 @@ export const addTaglessProduct: ControllerFn = async (req, res, next) => {
     res.status(200).json(product);
   } catch (e) {
     res.status(400).json({ success: false, message: e.message });
+  }
+};
+
+export const updateBulkProduct: ControllerFn = async (req, res, next) => {
+  const queryRunner = dataSource.createQueryRunner();
+  await queryRunner.startTransaction();
+
+  const manager = queryRunner.manager;
+  try {
+    const file = req.file;
+
+    if (!file) {
+      return next(new ErrorHandler("No File Found", 400));
+    }
+    const workbook = xlsx.read(file?.buffer, { type: "buffer" });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
+    const data: Product[] = xlsx.utils.sheet_to_json(sheet);
+
+    if (data.length === 0) {
+      return next(new ErrorHandler("No Data Found", 400));
+    }
+
+    const requiredFields: { key: keyof Product; label: string }[] = [
+      { key: "itemCode", label: "Item Code" },
+    ];
+
+    for (const product of data) {
+      const missingFields = requiredFields.filter(
+        (field) => !product[field.key]
+      );
+
+      if (missingFields.length > 0) {
+        const missingFieldsLabels = missingFields
+          .map((field) => field.label)
+          .join(", ");
+        return next(
+          new ErrorHandler(
+            `Product is missing value(s) for ${missingFieldsLabels}`,
+            404
+          )
+        );
+      }
+    }
+    // Use the transaction manager to update all products
+    for (const product of data) {
+      await manager
+        .createQueryBuilder()
+        .update(Product)
+        .set({
+          showroomName: product?.showroomName,
+          productCode: product?.productCode,
+          supplierName: product?.supplierName,
+          lotNumber: product?.lotNumber,
+          size: product?.size,
+          unitCost: product?.unitCost,
+          invoiceDate: new Date(product?.invoiceDate),
+          productGroup: product?.productGroup,
+          grossProfit: (product?.sellPrice - product?.unitCost).toFixed(2),
+          grossMargin: (
+            ((product?.sellPrice - product?.unitCost) / product?.sellPrice) *
+            100
+          ).toFixed(2),
+          unitTotalCost: product?.unitCost,
+          deliveryDate: new Date(product?.deliveryDate),
+          sellPrice: product?.sellPrice,
+          updatedAt: new Date(product?.updatedAt),
+          whName: product?.whName,
+          challanNumber: product?.challanNumber,
+          invoiceNumber: product?.invoiceNumber,
+          invoiceTotalPrice: product?.invoiceTotalPrice,
+          totalItem: product?.totalItem,
+          transportationCost: product?.transportationCost,
+          purchaseName: product?.purchaseName,
+          sellingStatus: product?.sellingStatus,
+        })
+        .where("itemCode = :itemCode", { itemCode: product.itemCode })
+        .execute();
+    }
+
+    // Commit the transaction if everything succeeds
+    await queryRunner.commitTransaction();
+
+    res.status(200).json({ message: "Data updated successfully", data: data });
+  } catch (error) {
+    // Rollback the transaction if there's an error
+    await queryRunner.rollbackTransaction();
+
+    console.log(
+      "🚀 ~ file: productController.ts:559 ~ const updateBulkProduct: ControllerFn = async ~ error:",
+      error
+    );
+    res.status(500).json({ success: false, message: error.message });
+  } finally {
+    // Release the query runner
+    await queryRunner.release();
   }
 };
