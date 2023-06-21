@@ -11,13 +11,14 @@ export const getShowroom = async (args: {
     .leftJoinAndSelect("showroom.customer", "customer")
     .leftJoinAndSelect("showroom.invoices", "invoices")
     .leftJoinAndSelect("showroom.employees", "employees")
-    .leftJoinAndSelect("showroom.returned", "returned")
     .leftJoinAndSelect("showroom.purchases", "purchases");
 
   if (args.showroomCode) {
-    qb.where("showroom.showrooCode", { showroomCode: args.showroomCode });
+    qb.where("showroom.showroomCode=:showroomCode", {
+      showroomCode: args.showroomCode,
+    });
   } else {
-    qb.where("showroom.id=:id", { id: args.id });
+    qb.andWhere("showroom.id=:id", { id: args.id });
   }
 
   return await qb.getOne();

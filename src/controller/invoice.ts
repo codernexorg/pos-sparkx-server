@@ -199,6 +199,7 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
       const returned = await dataSource
         .getRepository(ReturnProduct)
         .createQueryBuilder("re")
+        .leftJoinAndSelect("re.returnProducts", "returnProducts")
         .where("re.id=:returnId", { returnId })
         .getOne();
       if (!returned) {
@@ -275,6 +276,8 @@ export const getInvoices: ControllerFn = async (req, res, _next) => {
       .leftJoinAndSelect("invoice.products", "products")
       .leftJoinAndSelect("products.employee", "employee")
       .leftJoinAndSelect("invoice.paymentMethod", "paymentMethod")
+      .leftJoinAndSelect("invoice.returned", "returned")
+      .leftJoinAndSelect("returned.returnProducts", "returnProducts")
       .orderBy("invoice.createdAt", "DESC");
 
     if (req.showroomId) {

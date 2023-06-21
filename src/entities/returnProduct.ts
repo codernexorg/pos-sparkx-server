@@ -38,7 +38,7 @@ export default class ReturnProduct {
   bkash: number;
 
   @Column({ default: 0, type: "float" })
-  cbl: 0;
+  cbl: number;
 
   @CreateDateColumn()
   createdAt: Date;

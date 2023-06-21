@@ -74,4 +74,5 @@ export enum PaymentMethod {
   BKASH = "BKASH",
   CBL = "CBL",
   MULTIPLE = "MULTIPLE",
+  RETURNED = "RETURNED",
 }

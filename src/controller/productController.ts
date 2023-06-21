@@ -45,7 +45,6 @@ export const createSingleProduct: ControllerFn = async (req, res, next) => {
       sellPrice,
       lotNumber,
       totalItem,
-      whName,
       invoiceTotalPrice,
     } = req.body as Product;
 
@@ -57,7 +56,6 @@ export const createSingleProduct: ControllerFn = async (req, res, next) => {
       sellPrice,
       lotNumber,
       totalItem,
-      whName,
     ];
     if (requiredFields.some((field) => !field)) {
       return next(new ErrorHandler("Please Enter Required Information", 404));
@@ -330,7 +328,7 @@ export const importProduct = async (
       showroomName: product.showroomName,
       productCode: product?.productCode,
       supplierName: product?.supplierName,
-      lotNumber: product.lotNumber,
+      lotNumber: product?.lotNumber,
       size: product?.size,
       unitCost: product.unitCost,
       invoiceDate: new Date(product?.invoiceDate),
@@ -344,7 +342,6 @@ export const importProduct = async (
       deliveryDate: new Date(product?.deliveryDate),
       sellPrice: product.sellPrice,
       updatedAt: new Date(product?.updatedAt),
-      whName: product.whName,
       challanNumber: product?.challanNumber,
       invoiceNumber: product?.invoiceNumber,
       invoiceTotalPrice: product?.invoiceTotalPrice,
@@ -391,7 +388,6 @@ export const transferProduct: ControllerFn = async (req, res, next) => {
 
     for (const product of productArr) {
       product.showroomName = plannedShowroom;
-      product.whName = plannedShowroom;
       await product.save();
     }
     const transferData = new TransferProduct();
@@ -617,7 +613,6 @@ export const updateBulkProduct: ControllerFn = async (req, res, next) => {
           deliveryDate: new Date(product?.deliveryDate),
           sellPrice: product?.sellPrice,
           updatedAt: new Date(product?.updatedAt),
-          whName: product?.whName,
           challanNumber: product?.challanNumber,
           invoiceNumber: product?.invoiceNumber,
           invoiceTotalPrice: product?.invoiceTotalPrice,

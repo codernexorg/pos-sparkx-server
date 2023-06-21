@@ -10,7 +10,7 @@ import Employee from "../entities/employee";
 import Product from "../entities/product";
 import Showroom from "../entities/showroom";
 import Customer from "../entities/customer";
-import { ControllerFn } from "../types";
+import { ControllerFn, ProductStatus } from "../types";
 
 interface MonthlySales {
   [month: string]: number;
@@ -145,10 +145,7 @@ export default class ReportController {
       //Dynamically create a date object
 
       const date = moment(Number(month), "M", true).format("YYYY-MM-DD");
-
-      //Start OF Month
       const startOfMonth = moment(date).startOf("month").format("YYYY-MM-DD");
-      //End OF Month
       const endOfMonth = moment(date).endOf("month").format("YYYY-MM-DD");
 
       const showroomData = await dataSource
@@ -158,14 +155,19 @@ export default class ReportController {
           showroomCode: showroom as string,
         })
         .getOne();
+
       const rawSales = await dataSource
         .getRepository(Invoice)
         .createQueryBuilder("invoice")
         .leftJoinAndSelect("invoice.products", "products")
         .leftJoinAndSelect("invoice.paymentMethod", "paymentMethod")
-        .where("invoice.createdAt >= :start_date", { start_date: startOfMonth })
-        .andWhere("invoice.createdAt <= :end_date", { end_date: endOfMonth })
-        .andWhere("invoice.showroom=:showroom", { showroom: showroomData?.id })
+        .where(
+          "invoice.createdAt >= :start_date AND invoice.createdAt <= :end_date",
+          { start_date: startOfMonth, end_date: endOfMonth }
+        )
+        .andWhere("invoice.showroom = :showroom", {
+          showroom: showroomData?.id,
+        })
         .getMany();
 
       interface DailySalesReponse {
@@ -184,67 +186,51 @@ export default class ReportController {
 
       const dailySales: DailySalesReponse[] = [];
 
-      rawSales.map((iv) => {
+      rawSales.forEach((iv) => {
         const currentDate = moment(iv.createdAt).format("DD-MM-YYYY");
         const currentMonth = moment(iv.createdAt).format("MMMM");
         const currentYear = moment(iv.createdAt).format("YYYY");
         const isDateExist = dailySales.findIndex((i) => i.date === currentDate);
-
-        const totalAmount = iv.cash + iv.bkash + iv.cbl;
+        const productQuantity = iv.products.filter(
+          (p) => p.sellingStatus === ProductStatus.Sold
+        ).length;
 
         if (isDateExist !== -1) {
-          //Sales Total
-          dailySales[isDateExist].total =
-            dailySales[isDateExist].total + totalAmount;
+          const salesItem = dailySales[isDateExist];
+          salesItem.total += iv.invoiceAmount;
+          salesItem.quantity += productQuantity;
+          salesItem.taglessTotal += iv.products
+            .filter((p) => p.tagless && p.sellingStatus === ProductStatus.Sold)
+            .reduce((a, b) => a + b.sellPriceAfterDiscount, 0);
 
-          // Sales Quantity
-          dailySales[isDateExist].quantity =
-            dailySales[isDateExist].quantity + iv.quantity;
-          // Tagless Product Sales Total
-          dailySales[isDateExist].taglessTotal =
-            dailySales[isDateExist].taglessTotal +
-            iv.products
-              .filter((p) => p.tagless)
-              .reduce((a, b) => a + b.sellPriceAfterDiscount, 0);
-          // Tagged Product Sales Total
-          dailySales[isDateExist].withOutTaglessTotal =
-            dailySales[isDateExist].withOutTaglessTotal +
-            iv.products
-              .filter((p) => !p.tagless)
-              .reduce((a, b) => a + b.sellPriceAfterDiscount, 0);
-
-          dailySales[isDateExist].year = currentYear;
-          dailySales[isDateExist].month = currentMonth;
-          dailySales[isDateExist].date = currentDate;
-          dailySales[isDateExist].bkashAmount += iv.bkash;
-          dailySales[isDateExist].cashAmount += iv.cash;
-          dailySales[isDateExist].cblAmount += iv.cbl;
-          dailySales[isDateExist].gapAmount =
-            dailySales[isDateExist].total -
-            (dailySales[isDateExist].cashAmount +
-              dailySales[isDateExist].bkashAmount +
-              dailySales[isDateExist].cblAmount);
+          salesItem.withOutTaglessTotal += iv.products
+            .filter((p) => !p.tagless && p.sellingStatus === ProductStatus.Sold)
+            .reduce((a, b) => a + b.sellPriceAfterDiscount, 0);
+          salesItem.bkashAmount += iv.bkash;
+          salesItem.cashAmount += iv.cash;
+          salesItem.cblAmount += iv.cbl;
+          salesItem.gapAmount =
+            salesItem.total -
+            (salesItem.cashAmount +
+              salesItem.bkashAmount +
+              salesItem.cblAmount);
         } else {
-          //Tagless Total
           const taglessTotal = iv.products
-            .filter((p) => p.tagless)
+            .filter((p) => p.tagless && p.sellingStatus === ProductStatus.Sold)
             .reduce((a, b) => a + b.sellPriceAfterDiscount, 0);
-
-          //Without Tagless Total
           const withOutTaglessTotal = iv.products
-            .filter((p) => !p.tagless)
+            .filter((p) => !p.tagless && p.sellingStatus === ProductStatus.Sold)
             .reduce((a, b) => a + b.sellPriceAfterDiscount, 0);
-
-          //Tot
           const bkashAmount = iv.bkash;
           const cblAmount = iv.cbl;
           const cashAmount = iv.cash;
-          const gapAmount = iv.invoiceAmount - totalAmount;
+          const gapAmount = iv.invoiceAmount - (iv.bkash + iv.cbl + iv.cash);
+
           dailySales.push({
             date: currentDate,
             month: currentMonth,
-            quantity: iv.quantity,
-            total: totalAmount,
+            quantity: productQuantity,
+            total: iv.invoiceAmount,
             taglessTotal,
             withOutTaglessTotal,
             year: currentYear,
@@ -264,6 +250,7 @@ export default class ReportController {
             (a, b) => a + b.taglessTotal,
             0
           );
+
           const totalWithOutTaglessAmount = arr.reduce(
             (a, b) => a + b.withOutTaglessTotal,
             0

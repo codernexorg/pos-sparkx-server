@@ -74,6 +74,11 @@ export const createCustomer: ControllerFn = async (req, res, next) => {
 
     res.status(201).json(customer);
   } catch (e) {
+    console.log(
+      "🚀 ~ file: customer.ts:77 ~ constcreateCustomer:ControllerFn= ~ e:",
+      e
+    );
+
     res.status(400).json({ message: e.message });
   }
 };

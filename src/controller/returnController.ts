@@ -1,4 +1,4 @@
-import { ControllerFn, ProductStatus } from "../types";
+import { ControllerFn, PaymentMethod, ProductStatus } from "../types";
 import appDataSource from "../typeorm.config";
 import Showroom from "../entities/showroom";
 import ErrorHandler from "../utils/errorHandler";
@@ -9,15 +9,20 @@ import Invoice from "../entities/invoice";
 import { In } from "typeorm";
 import moment from "moment";
 import wdate from "../helper/wdate";
+import Payment from "../entities/Payment";
 
 export const createReturnProduct: ControllerFn = async (req, res, next) => {
   try {
-    const { check, customerPhone, exchange, items } = req.body as {
-      customerPhone: string;
-      check: string;
-      exchange: string;
-      items: string[];
-    };
+    const { check, customerPhone, exchange, items, cash, bkash, cbl } =
+      req.body as {
+        customerPhone: string;
+        check: string;
+        exchange: string;
+        items: string[];
+        cash: number;
+        bkash: number;
+        cbl: number;
+      };
     // Finding The Showroom For Sells
 
     if (!customerPhone) {
@@ -61,15 +66,13 @@ export const createReturnProduct: ControllerFn = async (req, res, next) => {
       return next(new ErrorHandler("Customer Not Found", 404));
     }
 
-    if (exchange === "Not Exchanging") {
-      if (!req.body.cash && !req.body.bkash && !req.body.cbl) {
-        return next(
-          new ErrorHandler(
-            "You Must Select A Method How Your Returning The Amount",
-            404
-          )
-        );
-      }
+    if (exchange === "Not Exchanging" && !cash && !bkash && !cbl) {
+      return next(
+        new ErrorHandler(
+          "You must select a method for returning the amount.",
+          404
+        )
+      );
     }
 
     const products = await appDataSource.getRepository(Product).find({
@@ -79,7 +82,6 @@ export const createReturnProduct: ControllerFn = async (req, res, next) => {
     });
 
     const returnProduct = new ReturnProduct();
-
     for (const product of products) {
       product.sellingStatus = ProductStatus.Unsold;
       product.sellPriceAfterDiscount = product.sellPrice;
@@ -97,32 +99,33 @@ export const createReturnProduct: ControllerFn = async (req, res, next) => {
     },
     0);
 
-    console.log(amount);
-
     returnProduct.check = check;
     returnProduct.customerPhone = customer.customerPhone;
     returnProduct.amount = amount;
-    returnProduct.bkash = req.body?.bkash;
-    returnProduct.cbl = req.body?.cbl;
-    returnProduct.cash = req.body?.cash;
+    returnProduct.bkash = bkash;
+    returnProduct.cbl = cbl;
+    returnProduct.cash = cash;
 
     if (exchange === "Exchanging") {
       returnProduct.exchange = true;
-      await Promise.all([
-        appDataSource.getRepository(ReturnProduct).save(returnProduct),
-      ]);
+      await appDataSource.getRepository(ReturnProduct).save(returnProduct);
       res.status(201).json(returnProduct);
-    } else {
+    } else if (exchange === "Not Exchanging") {
+      const paymentMethod = new Payment();
+      paymentMethod.amount = 0 - returnProduct.amount;
+      paymentMethod.paymentMethod = PaymentMethod.RETURNED;
+
       const invoice = new Invoice();
       invoice.bkash = 0 - returnProduct.bkash;
       invoice.cash = 0 - returnProduct.cash;
       invoice.cbl = 0 - returnProduct.cbl;
       invoice.customerMobile = customer.customerPhone;
       invoice.customerName = customer.customerName;
-      invoice.invoiceAmount = 0 - amount;
-      invoice.netAmount = 0 - amount;
+      invoice.invoiceAmount = 0 - returnProduct.amount;
+      invoice.netAmount = 0 - returnProduct.amount;
       invoice.returned = returnProduct;
-
+      invoice.paymentMethod = paymentMethod;
+      await appDataSource.getRepository(ReturnProduct).save(returnProduct);
       invoice.showroomInvoiceCode =
         showroom.showroomCode +
         (showroom.invoices.length + 1).toString().padStart(8, "0");
@@ -131,10 +134,11 @@ export const createReturnProduct: ControllerFn = async (req, res, next) => {
       invoice.showroomName = showroom.showroomName;
       showroom.invoices.push(invoice);
 
-      await Promise.all([
-        showroom.save(),
-        appDataSource.getRepository(Invoice).save(invoice),
-      ]);
+      await paymentMethod.save();
+
+      await invoice.save();
+
+      await showroom.save();
       res.status(200).json(invoice);
     }
   } catch (err) {
@@ -172,27 +176,29 @@ export const getReturnReport: ControllerFn = async (req, res, next) => {
       .leftJoinAndSelect("invoice.showroom", "showroom")
       .leftJoinAndSelect("invoice.returned", "returned")
       .leftJoinAndSelect("returned.returnProducts", "returnProducts")
+      .leftJoinAndSelect("invoice.paymentMethod", "paymentMethod")
       .leftJoinAndSelect("returnProducts.employee", "employee")
       .where("showroom.id=:id", { id: showroom?.id })
-      .andWhere("returned.amount>:amount", { amount: 0 })
       .getMany();
 
     const returnData = data.map((iv) => {
-      return {
-        day: wdate(moment(iv?.returned?.createdAt).isoWeekday()),
-        date: moment(iv?.returned?.createdAt).format("DD-MM-YYYY"),
-        tagPrice: iv?.returned?.returnProducts.map((p) => p.sellPrice),
-        finalPrice: iv?.returned?.returnProducts.map(
-          (p) => p.sellPriceAfterDiscount
-        ),
-        seller: iv?.returned?.returnProducts.map((p) => p.employee),
-        products: iv?.returned?.returnProducts.map((p) => ({
-          itemCode: p.itemCode,
-          productName: p.productGroup,
-        })),
-        invoiceNo: iv?.showroomInvoiceCode,
-        check: iv?.returned?.check,
-      };
+      if (iv.returned)
+        return {
+          day: wdate(moment(iv?.returned?.createdAt).isoWeekday()),
+          date: moment(iv?.returned?.createdAt).format("DD-MM-YYYY"),
+          tagPrice: iv?.returned?.returnProducts.map((p) => p.sellPrice),
+          finalPrice: iv?.returned?.returnProducts.map(
+            (p) => p.sellPriceAfterDiscount
+          ),
+          seller: iv?.returned?.returnProducts.map((p) => p.employee),
+          products: iv?.returned?.returnProducts.map((p) => ({
+            itemCode: p.itemCode,
+            productName: p.productGroup,
+          })),
+          invoiceNo: iv?.showroomInvoiceCode,
+          check: iv?.returned?.check,
+        };
+      else return null;
     });
     res.status(200).json(returnData);
   } catch (err) {
