@@ -10,6 +10,7 @@ import { ControllerFn, ProductStatus } from "../types";
 import ErrorHandler from "../utils/errorHandler";
 import dataSource from "../typeorm.config";
 import { filter } from "underscore";
+import appDataSource from "../typeorm.config";
 
 export const createProductGroup: ControllerFn = async (req, res, next) => {
   try {
@@ -46,6 +47,7 @@ export const createSingleProduct: ControllerFn = async (req, res, next) => {
       lotNumber,
       totalItem,
       invoiceTotalPrice,
+      supplierName,
     } = req.body as Product;
 
     const requiredFields = [
@@ -56,6 +58,7 @@ export const createSingleProduct: ControllerFn = async (req, res, next) => {
       sellPrice,
       lotNumber,
       totalItem,
+      supplierName,
     ];
     if (requiredFields.some((field) => !field)) {
       return next(new ErrorHandler("Please Enter Required Information", 404));
@@ -641,5 +644,35 @@ export const updateBulkProduct: ControllerFn = async (req, res, next) => {
   } finally {
     // Release the query runner
     await queryRunner.release();
+  }
+};
+
+export const getProductByShowroom: ControllerFn = async (req, res, next) => {
+  try {
+    const { showroomCode } = req.query;
+
+    const showroom = await appDataSource
+      .getRepository(Showroom)
+      .createQueryBuilder("sr")
+      .where("sr.showroomCode=:showroomCode", { showroomCode })
+      .getOne();
+
+    if (!showroom) {
+      return next(new ErrorHandler("Showroom Not Found", 404));
+    }
+
+    const products = await appDataSource
+      .getRepository(Product)
+      .createQueryBuilder("p")
+      .where("p.showroomName=:showroomName", {
+        showroomName: showroom.showroomName,
+      })
+      .andWhere('p.sellingStatus="Unsold"')
+      .getMany();
+
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+    res.status(200).json(products);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };

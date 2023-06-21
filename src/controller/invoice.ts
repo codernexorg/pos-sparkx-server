@@ -143,6 +143,10 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
     const withTax = netAmount + Math.round((subtotal / 100) * vat);
     // Initiating Product To Sell
 
+    if (!returnId && paidAmount < netAmount) {
+      return next(new ErrorHandler("Please Pay Payable Amount", 404));
+    }
+
     const products = await dataSource
       .getRepository(Product)
       .createQueryBuilder("product")

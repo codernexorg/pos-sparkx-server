@@ -6,6 +6,7 @@ import {
   createMultipleProducts,
   createProductGroup,
   createSingleProduct,
+  getProductByShowroom,
   getProductGroup,
   getProducts,
   getTransferHistory,
@@ -41,4 +42,7 @@ productRoutes
 productRoutes.patch("/:id", updateProduct);
 
 productRoutes.post("/update", upload.single("file"), updateBulkProduct);
+
+productRoutes.get("/filter", getProductByShowroom);
+
 export default productRoutes;

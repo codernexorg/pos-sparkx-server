@@ -10,6 +10,7 @@ import { In } from "typeorm";
 import moment from "moment";
 import wdate from "../helper/wdate";
 import Payment from "../entities/Payment";
+import Employee from "../entities/employee";
 
 export const createReturnProduct: ControllerFn = async (req, res, next) => {
   try {
@@ -79,6 +80,9 @@ export const createReturnProduct: ControllerFn = async (req, res, next) => {
       where: {
         itemCode: In(items),
       },
+      relations: {
+        employee: true,
+      },
     });
 
     const returnProduct = new ReturnProduct();
@@ -88,7 +92,19 @@ export const createReturnProduct: ControllerFn = async (req, res, next) => {
       product.returnStatus = true;
       customer.returnPurchase(product);
       returnProduct.addProduct(product);
-      await Promise.all([customer.save(), product.save()]);
+      const employee = await appDataSource
+        .getRepository(Employee)
+        .createQueryBuilder("emp")
+        .leftJoinAndSelect("emp.sales", "sales")
+        .leftJoinAndSelect("emp.returnSales", "returnSales")
+        .where("emp.id=:id", { id: product.employee.id })
+        .getOne();
+
+      if (employee) {
+        employee.returnSale(product);
+      }
+
+      await Promise.all([customer.save(), employee?.save(), product.save()]);
     }
 
     const amount: number = products.reduce(function (
