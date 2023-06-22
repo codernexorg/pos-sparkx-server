@@ -670,7 +670,6 @@ export const getProductByShowroom: ControllerFn = async (req, res, next) => {
       .andWhere('p.sellingStatus="Unsold"')
       .getMany();
 
-    await new Promise((resolve) => setTimeout(resolve, 5000));
     res.status(200).json(products);
   } catch (err) {
     res.status(500).json({ message: err.message });

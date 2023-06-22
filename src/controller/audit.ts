@@ -1,52 +1,49 @@
-import Product from '../entities/product';
-import { ControllerFn, ProductStatus } from '../types';
-import ErrorHandler from '../utils/errorHandler';
+import Product from "../entities/product";
+import appDataSource from "../typeorm.config";
+import { ControllerFn } from "../types";
+import ErrorHandler from "../utils/errorHandler";
 
 export const getAudit: ControllerFn = async (req, res, next) => {
   try {
     const { showroomName, productGroup, supplierName } = req.query;
     if (!showroomName) {
       return next(
-        new ErrorHandler('Showroom Must Be Select For Auditing', 400)
+        new ErrorHandler("Showroom Must Be Select For Auditing", 400)
       );
     }
+    const productRepository = appDataSource.getRepository(Product);
     if (!supplierName && !productGroup) {
-      res.status(200).json(
-        await Product.find({
-          where: { showroomName, sellingStatus: ProductStatus.Unsold }
-        })
-      );
+      const products = productRepository
+        .createQueryBuilder("product")
+        .where("product.showroomName=:showroomName", { showroomName })
+        .andWhere('product.sellingStatus="Unsold"')
+        .getMany();
+      res.status(200).json(products);
     } else if (supplierName && productGroup) {
-      res.status(200).json(
-        await Product.find({
-          where: {
-            showroomName,
-            supplierName,
-            productGroup,
-            sellingStatus: ProductStatus.Unsold
-          }
-        })
-      );
+      const products = productRepository
+        .createQueryBuilder("product")
+        .where("product.showroomName=:showroomName", { showroomName })
+        .andWhere("product.supplierName=:supplierName", { supplierName })
+        .andWhere("product.productGroup=:productGroup", { productGroup })
+        .andWhere('product.sellingStatus="Unsold"')
+        .getMany();
+      res.status(200).json(products);
     } else if (productGroup) {
-      res.status(200).json(
-        await Product.find({
-          where: {
-            showroomName,
-            productGroup,
-            sellingStatus: ProductStatus.Unsold
-          }
-        })
-      );
+      const products = productRepository
+        .createQueryBuilder("product")
+        .where("product.showroomName=:showroomName", { showroomName })
+        .andWhere("product.productGroup=:productGroup", { productGroup })
+        .andWhere('product.sellingStatus="Unsold"')
+        .getMany();
+      res.status(200).json(products);
     } else if (supplierName) {
-      res.status(200).json(
-        await Product.find({
-          where: {
-            showroomName,
-            supplierName,
-            sellingStatus: ProductStatus.Unsold
-          }
-        })
-      );
+      const products = productRepository
+        .createQueryBuilder("product")
+        .where("product.showroomName=:showroomName", { showroomName })
+        .andWhere("product.supplierName=:supplierName", { supplierName })
+        .andWhere('product.sellingStatus="Unsold"')
+        .getMany();
+      res.status(200).json(products);
     }
   } catch (e) {
     res.status(200).json({ message: e.message });

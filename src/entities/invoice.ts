@@ -14,7 +14,6 @@ import { InvoiceStatus } from "../types";
 import Product from "./product";
 import Employee from "./employee";
 import Showroom from "./showroom";
-import { filter, find } from "underscore";
 import Payment from "./Payment";
 import ReturnProduct from "./returnProduct";
 
@@ -31,7 +30,7 @@ export default class Invoice extends BaseEntity {
   })
   invoiceStatus: InvoiceStatus;
 
-  @Column({ nullable: true, default: "Spark X Fashion Wear Limited" })
+  @Column({ nullable: true, default: "SPARKX Lifestyle" })
   businessName: string;
 
   @Column({ nullable: true, default: "Dhaka, Dhaka, Bangladesh" })
