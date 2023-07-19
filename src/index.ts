@@ -29,6 +29,7 @@ import {
   userRoutes,
   warehouseRoutes,
 } from "./routes";
+import { deleteExpiredHoldInvoices } from "./utils/auto";
 
 const mount = async (app: Application) => {
   await dataSource.initialize();
@@ -36,8 +37,6 @@ const mount = async (app: Application) => {
     "http://sparkxfashion.com",
     "https://sparkxfashion.com",
     "http://localhost:3000",
-    "http://localhost:5173",
-    "https://sparkx.udvabonibd.com",
   ];
   app.use(compression());
   app.use(
@@ -74,6 +73,9 @@ const mount = async (app: Application) => {
   app.use("/api/v1/product", isAuth, commonAuth, showRoomAccess, productRoutes);
   app.use("/api/v1/purchase", isAuth, commonAuth, isSuperAdmin, purchaseRoutes);
   app.use("/api/v1/sms", isAuth, commonAuth, sms);
+
+  // Schedule the function to run periodically, e.g., every 24 hours
+  setInterval(deleteExpiredHoldInvoices, 24 * 60 * 60 * 1000);
 
   app.use(
     "/api/v1/supplier",

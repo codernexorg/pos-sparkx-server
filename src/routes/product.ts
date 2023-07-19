@@ -6,12 +6,14 @@ import {
   createMultipleProducts,
   createProductGroup,
   createSingleProduct,
+  getProductByShowroom,
   getProductGroup,
   getProducts,
   getTransferHistory,
   importProduct,
   importProductGroup,
   transferProduct,
+  updateBulkProduct,
   updateProduct,
 } from "../controller/productController";
 import { isSuperAdmin } from "../middleware/isAuth";
@@ -38,4 +40,9 @@ productRoutes
   .post(isSuperAdmin, transferProduct)
   .get(isSuperAdmin, getTransferHistory);
 productRoutes.patch("/:id", updateProduct);
+
+productRoutes.post("/update", upload.single("file"), updateBulkProduct);
+
+productRoutes.get("/filter", getProductByShowroom);
+
 export default productRoutes;

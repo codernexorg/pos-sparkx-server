@@ -1,17 +1,21 @@
 import express from "express";
+import { createInvoice, getInvoices } from "../controller/invoice";
 import {
-  createInvoice,
-  getInvoices,
-  resetHoldInvoice,
-  updateInvoice,
-} from "../controller/invoice";
-import { createReturnProduct, getReturnProduct } from "../controller/return";
+  createHoldInvoice,
+  getHold,
+  removeHold,
+} from "../controller/holdInvoice";
+import {
+  createReturnProduct,
+  getReturns,
+} from "../controller/returnController";
 
 export const invoiceRoutes = express.Router();
 
 invoiceRoutes.route("/").get(getInvoices).post(createInvoice);
-invoiceRoutes.route("/:id").patch(updateInvoice);
-invoiceRoutes.route("/return").get(getReturnProduct).post(createReturnProduct);
-invoiceRoutes.route("/reset-hold/:id").patch(resetHoldInvoice);
+
+invoiceRoutes.route("/hold").get(getHold).post(createHoldInvoice);
+invoiceRoutes.route("/hold/:id").delete(removeHold);
+invoiceRoutes.route("/return").post(createReturnProduct).get(getReturns);
 
 export default invoiceRoutes;

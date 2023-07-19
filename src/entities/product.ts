@@ -5,6 +5,7 @@ import {
   Entity,
   ManyToMany,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from "typeorm";
@@ -14,7 +15,8 @@ import Purchase from "./purchase";
 import Invoice from "./invoice";
 import Customer from "./customer";
 import Employee from "./employee";
-import Returned from "./Returned";
+import HoldInvoice from "./holdInvoice";
+import ReturnProduct from "./returnProduct";
 
 @Entity()
 export default class Product extends BaseEntity {
@@ -76,8 +78,8 @@ export default class Product extends BaseEntity {
   })
   sellingStatus: ProductStatus;
 
-  @Column({ default: 0 })
-  returnStatus: number;
+  @Column({ default: false })
+  returnStatus: boolean;
 
   @Column({ nullable: true })
   deliveryDate: Date;
@@ -128,12 +130,6 @@ export default class Product extends BaseEntity {
   })
   returnedCustomer: Customer;
 
-  @ManyToOne(() => Returned, (returnProduct) => returnProduct.products, {
-    onDelete: "SET NULL",
-    onUpdate: "SET NULL",
-  })
-  returned: Returned;
-
   @ManyToOne(() => Customer, (customer) => customer.purchasedProducts, {
     onDelete: "SET NULL",
     onUpdate: "CASCADE",
@@ -154,6 +150,18 @@ export default class Product extends BaseEntity {
 
   @Column({ type: "boolean", default: false })
   tagless: boolean;
+
+  @ManyToOne(() => HoldInvoice, (h) => h.items, {
+    onDelete: "SET NULL",
+    onUpdate: "CASCADE",
+  })
+  hold: HoldInvoice;
+
+  @ManyToOne(() => ReturnProduct, (r) => r.returnProducts, {
+    onDelete: "CASCADE",
+    onUpdate: "CASCADE",
+  })
+  returnProduct: ReturnProduct;
 
   @CreateDateColumn()
   createdAt: Date;

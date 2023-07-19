@@ -20,11 +20,12 @@ import Tax from "./entities/tax";
 import TransferProduct from "./entities/transfer";
 import Employee from "./entities/employee";
 import BarcodeDefault from "./entities/barcodeDefault";
-import Returned from "./entities/Returned";
 import Account from "./entities/account";
 import Payment from "./entities/Payment";
+import HoldInvoice from "./entities/holdInvoice";
+import ReturnProduct from "./entities/returnProduct";
 
-const dataSource = new DataSource({
+const appDataSource = new DataSource({
   type: "mysql",
   username: config.DB_USER,
   password: config.DB_PASS,
@@ -54,11 +55,11 @@ const dataSource = new DataSource({
     Purchase,
     Employee,
     BarcodeDefault,
-    Returned,
     Account,
     Payment,
+    HoldInvoice,
+    ReturnProduct,
   ],
 });
 
-// @ts-ignore
-export default dataSource;
+export default appDataSource;

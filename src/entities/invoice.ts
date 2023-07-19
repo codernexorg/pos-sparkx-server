@@ -14,8 +14,8 @@ import { InvoiceStatus } from "../types";
 import Product from "./product";
 import Employee from "./employee";
 import Showroom from "./showroom";
-import { filter, find } from "underscore";
 import Payment from "./Payment";
+import ReturnProduct from "./returnProduct";
 
 @Entity()
 export default class Invoice extends BaseEntity {
@@ -30,7 +30,7 @@ export default class Invoice extends BaseEntity {
   })
   invoiceStatus: InvoiceStatus;
 
-  @Column({ nullable: true, default: "Spark X Fashion Wear Limited" })
+  @Column({ nullable: true, default: "SPARKX Lifestyle" })
   businessName: string;
 
   @Column({ nullable: true, default: "Dhaka, Dhaka, Bangladesh" })
@@ -72,21 +72,27 @@ export default class Invoice extends BaseEntity {
   })
   employee: Employee;
 
-  @Column({ type: "float", nullable: true })
+  @Column({ type: "float", nullable: true, default: 0 })
   invoiceAmount: number;
 
-  @Column({ type: "float", nullable: true })
+  @Column({ type: "float", nullable: true, default: 0 })
   netAmount: number;
 
-  @Column({ type: "float", nullable: true })
-  withoutTax: number;
+  @Column({ type: "float", nullable: true, default: 0 })
+  subtotal: number;
 
-  @Column({ type: "float", nullable: true })
-  withTax: number;
+  @Column({ type: "float", nullable: true, default: 0 })
+  cash: number;
 
-  @Column({ nullable: true, type: "float" })
+  @Column({ type: "float", nullable: true, default: 0 })
+  bkash: number;
+
+  @Column({ type: "float", nullable: true, default: 0 })
+  cbl: number;
+
+  @Column({ nullable: true, type: "float", default: 0 })
   paidAmount: number;
-  @Column({ nullable: true, type: "float" })
+  @Column({ nullable: true, type: "float", default: 0 })
   changeAmount: number;
 
   @Column({ nullable: true, default: 0, type: "float" })
@@ -97,14 +103,8 @@ export default class Invoice extends BaseEntity {
   @Column({ nullable: true, type: "int" })
   quantity: number;
 
-  // @OneToOne(() => Returned, {
-  //   eager: true,
-  //   onDelete: "SET NULL",
-  //   onUpdate: "CASCADE",
-  //   cascade: true,
-  // })
-  // @JoinColumn()
-  // returned: Returned;
+  @Column({ nullable: true, default: 0 })
+  returnQuantity: number;
 
   @OneToOne(() => Payment, {
     eager: true,
@@ -114,19 +114,17 @@ export default class Invoice extends BaseEntity {
   @JoinColumn()
   paymentMethod: Payment;
 
+  @OneToOne(() => ReturnProduct, {
+    eager: true,
+    onDelete: "SET NULL",
+    onUpdate: "CASCADE",
+  })
+  @JoinColumn()
+  returned: ReturnProduct;
+
   @CreateDateColumn()
   createdAt: Date;
 
   @UpdateDateColumn()
   updatedAt: Date;
-
-  returnProductFromInvoice(product: Product): void {
-    const productFromInvoice = find(this.products, (p) => p.id === product.id);
-    if (productFromInvoice) {
-      this.products = filter(
-        this.products,
-        (p) => p.id !== productFromInvoice.id
-      );
-    }
-  }
 }

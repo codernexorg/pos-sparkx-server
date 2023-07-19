@@ -10,6 +10,7 @@ import {
 } from "typeorm";
 import Showroom from "./showroom";
 import Product from "./product";
+import ErrorHandler from "../utils/errorHandler";
 
 @Entity()
 export default class Customer extends BaseEntity {
@@ -72,14 +73,21 @@ export default class Customer extends BaseEntity {
     if (this.returnedProducts == null) {
       this.returnedProducts = new Array<Product>();
     }
-    const productPurchased = this.purchasedProducts.find(
-      (p) => p.id === product.id
-    );
-    if (productPurchased) {
-      this.purchasedProducts = this.purchasedProducts.filter(
-        (p) => p.id !== product.id
+    if (this.purchasedProducts) {
+      const productPurchased = this.purchasedProducts.find(
+        (p) => p.id === product.id
       );
-      this.returnedProducts.push(product);
+      if (productPurchased) {
+        this.purchasedProducts = this.purchasedProducts.filter(
+          (p) => p.id !== product.id
+        );
+        this.returnedProducts.push(product);
+      } else {
+        throw new ErrorHandler(
+          "Product Not Found On This Customer's Purchase List",
+          404
+        );
+      }
     }
   }
 }

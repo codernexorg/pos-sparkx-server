@@ -10,8 +10,7 @@ import Employee from "../entities/employee";
 import Product from "../entities/product";
 import Showroom from "../entities/showroom";
 import Customer from "../entities/customer";
-import { ControllerFn, PaymentMethod } from "../types";
-import Returned from "../entities/Returned";
+import { ControllerFn, ProductStatus } from "../types";
 
 interface MonthlySales {
   [month: string]: number;
@@ -146,10 +145,7 @@ export default class ReportController {
       //Dynamically create a date object
 
       const date = moment(Number(month), "M", true).format("YYYY-MM-DD");
-
-      //Start OF Month
       const startOfMonth = moment(date).startOf("month").format("YYYY-MM-DD");
-      //End OF Month
       const endOfMonth = moment(date).endOf("month").format("YYYY-MM-DD");
 
       const showroomData = await dataSource
@@ -159,14 +155,19 @@ export default class ReportController {
           showroomCode: showroom as string,
         })
         .getOne();
+
       const rawSales = await dataSource
         .getRepository(Invoice)
         .createQueryBuilder("invoice")
         .leftJoinAndSelect("invoice.products", "products")
         .leftJoinAndSelect("invoice.paymentMethod", "paymentMethod")
-        .where("invoice.createdAt >= :start_date", { start_date: startOfMonth })
-        .andWhere("invoice.createdAt <= :end_date", { end_date: endOfMonth })
-        .andWhere("invoice.showroom=:showroom", { showroom: showroomData?.id })
+        .where(
+          "invoice.createdAt >= :start_date AND invoice.createdAt <= :end_date",
+          { start_date: startOfMonth, end_date: endOfMonth }
+        )
+        .andWhere("invoice.showroom = :showroom", {
+          showroom: showroomData?.id,
+        })
         .getMany();
 
       interface DailySalesReponse {
@@ -183,70 +184,71 @@ export default class ReportController {
         gapAmount: number;
       }
 
-      const dailySales: DailySalesReponse[] = [];
+      const dailySales: Map<string, DailySalesReponse> = new Map();
 
-      rawSales.map((iv) => {
-        const currentDate = moment(iv.createdAt).format("DD-MM-YYYY");
-        const currentMonth = moment(iv.createdAt).format("MMMM");
-        const currentYear = moment(iv.createdAt).format("YYYY");
-        const isDateExist = dailySales.findIndex((i) => i.date === currentDate);
+      rawSales.forEach((iv) => {
+        const createdAt = moment(iv.createdAt);
+        const currentDate = createdAt.format("DD-MM-YYYY");
+        const currentMonth = createdAt.format("MMMM");
+        const currentYear = createdAt.format("YYYY");
 
-        if (isDateExist !== -1) {
-          dailySales[isDateExist].total =
-            dailySales[isDateExist].total + iv.invoiceAmount;
-          dailySales[isDateExist].quantity =
-            dailySales[isDateExist].quantity + iv.quantity;
-          dailySales[isDateExist].taglessTotal =
-            dailySales[isDateExist].taglessTotal +
-            iv.products
-              .filter((p) => p.tagless)
-              .reduce((a, b) => a + b.sellPriceAfterDiscount, 0);
-          dailySales[isDateExist].withOutTaglessTotal =
-            dailySales[isDateExist].withOutTaglessTotal +
-            iv.products
-              .filter((p) => !p.tagless)
-              .reduce((a, b) => a + b.sellPriceAfterDiscount, 0);
-          dailySales[isDateExist].year = currentYear;
-          dailySales[isDateExist].month = currentMonth;
-          dailySales[isDateExist].date = currentDate;
-          if (iv.paymentMethod.paymentMethod === PaymentMethod.BKASH) {
-            dailySales[isDateExist].bkashAmount += iv.invoiceAmount;
-          } else if (iv.paymentMethod.paymentMethod === PaymentMethod.CASH) {
-            dailySales[isDateExist].cashAmount += iv.invoiceAmount;
-          } else {
-            dailySales[isDateExist].cblAmount += iv.invoiceAmount;
+        const productQuantity = iv.products.reduce((count, p) => {
+          if (p.sellingStatus === ProductStatus.Sold) {
+            return count + 1;
           }
-          dailySales[isDateExist].gapAmount =
-            dailySales[isDateExist].total -
-            (dailySales[isDateExist].cashAmount +
-              dailySales[isDateExist].bkashAmount +
-              dailySales[isDateExist].cblAmount);
-        } else {
-          const taglessTotal = iv.products
-            .filter((p) => p.tagless)
-            .reduce((a, b) => a + b.sellPriceAfterDiscount, 0);
-          const withOutTaglessTotal = iv.products
-            .filter((p) => !p.tagless)
-            .reduce((a, b) => a + b.sellPriceAfterDiscount, 0);
+          return count;
+        }, 0);
 
-          const bkashAmount =
-            iv.paymentMethod.paymentMethod === PaymentMethod.BKASH
-              ? iv.invoiceAmount
-              : 0;
-          const cblAmount =
-            iv.paymentMethod.paymentMethod === PaymentMethod.CBL
-              ? iv.invoiceAmount
-              : 0;
-          const cashAmount =
-            iv.paymentMethod.paymentMethod === PaymentMethod.CASH
-              ? iv.invoiceAmount
-              : 0;
-          const gapAmount =
-            iv.invoiceAmount - (cashAmount + bkashAmount + cblAmount);
-          dailySales.push({
+        if (dailySales.has(currentDate)) {
+          const salesItem = dailySales.get(currentDate);
+          salesItem!.total += iv.invoiceAmount;
+          salesItem!.quantity += productQuantity;
+          salesItem!.taglessTotal += iv.products.reduce((sum, p) => {
+            if (p.tagless && p.sellingStatus === ProductStatus.Sold) {
+              return sum + p.sellPriceAfterDiscount;
+            }
+            return sum;
+          }, 0);
+
+          salesItem!.withOutTaglessTotal += iv.products.reduce((sum, p) => {
+            if (!p.tagless && p.sellingStatus === ProductStatus.Sold) {
+              return sum + p.sellPriceAfterDiscount;
+            }
+            return sum;
+          }, 0);
+
+          salesItem!.bkashAmount += iv.bkash;
+          salesItem!.cashAmount += iv.cash;
+          salesItem!.cblAmount += iv.cbl;
+          salesItem!.gapAmount =
+            salesItem!.total -
+            (salesItem!.cashAmount +
+              salesItem!.bkashAmount +
+              salesItem!.cblAmount);
+        } else {
+          const taglessTotal = iv.products.reduce((sum, p) => {
+            if (p.tagless && p.sellingStatus === ProductStatus.Sold) {
+              return sum + p.sellPriceAfterDiscount;
+            }
+            return sum;
+          }, 0);
+
+          const withOutTaglessTotal = iv.products.reduce((sum, p) => {
+            if (!p.tagless && p.sellingStatus === ProductStatus.Sold) {
+              return sum + p.sellPriceAfterDiscount;
+            }
+            return sum;
+          }, 0);
+
+          const bkashAmount = iv.bkash;
+          const cblAmount = iv.cbl;
+          const cashAmount = iv.cash;
+          const gapAmount = iv.invoiceAmount - (iv.bkash + iv.cbl + iv.cash);
+
+          dailySales.set(currentDate, {
             date: currentDate,
             month: currentMonth,
-            quantity: iv.quantity,
+            quantity: productQuantity,
             total: iv.invoiceAmount,
             taglessTotal,
             withOutTaglessTotal,
@@ -258,15 +260,20 @@ export default class ReportController {
           });
         }
       });
+      // Convert the Map values to an array of DailySalesReponse
+      const optimizedDailySales: DailySalesReponse[] = Array.from(
+        dailySales.values()
+      );
 
       res.status(200).json(
-        dailySales.map((d, _idx, arr) => {
+        optimizedDailySales.map((d, _idx, arr) => {
           const totalQty = arr.reduce((a, b) => a + b.quantity, 0);
           const totalAmount = arr.reduce((a, b) => a + b.total, 0);
           const totalTaglessAmount = arr.reduce(
             (a, b) => a + b.taglessTotal,
             0
           );
+
           const totalWithOutTaglessAmount = arr.reduce(
             (a, b) => a + b.withOutTaglessTotal,
             0
@@ -315,24 +322,38 @@ export default class ReportController {
       const date = moment(Number(month), "M", true).format("YYYY-MM-DD");
       //
       //Start OF Month
-      const startOfMonth = moment(date).startOf("month").format("YYYY-MM-DD");
+      const startOfMonth = moment(date).startOf("month").format("MMMM-YYYY");
       //End OF Month
-      const endOfMonth = moment(date).endOf("month").format("YYYY-MM-DD");
+      const endOfMonth = moment(date).endOf("month").format("MMMM-YYYY");
       const showroomData = await dataSource
         .getRepository(Showroom)
         .createQueryBuilder("showroom")
+        .leftJoinAndSelect("showroom.employees", "employees")
         .where("showroom.showroomCode=:showroomCode", {
           showroomCode: showroom as string,
         })
         .getOne();
+
+      if (!showroomData) {
+        return _next(
+          new ErrorHandler("Happeing Problem To Find Showroom", 404)
+        );
+      }
+
       const data = await dataSource
         .getRepository(Employee)
         .createQueryBuilder("emp")
         .leftJoinAndSelect("emp.sales", "sales")
         .leftJoinAndSelect("emp.returnSales", "returnSales")
-        .where("emp.showroom=:showroom", { showroom: showroomData?.id })
-        .andWhere("emp.updatedAt >= :start_date", { start_date: startOfMonth })
-        .andWhere("emp.updatedAt <= :end_date", { end_date: endOfMonth })
+        .leftJoinAndSelect("emp.showroom", "showroom")
+        .where("showroom.id = :id", { id: showroomData.id })
+        .andWhere(
+          'DATE_FORMAT(sales.updatedAt,"%M-%Y") >= :start_date AND DATE_FORMAT(sales.updatedAt,"%M-%Y") <= :end_date',
+          {
+            start_date: startOfMonth,
+            end_date: endOfMonth,
+          }
+        )
         .getMany();
 
       const newData = data.map((employee) => {
@@ -834,58 +855,6 @@ export default class ReportController {
           .getRawMany();
         res.status(200).json(sales);
       }
-    } catch (e) {
-      res.status(404).json({ message: e.message });
-    }
-  }
-
-  public static async returnReport(
-    req: Request & { showroomId?: number },
-    res: Response,
-    _next: NextFunction
-  ) {
-    try {
-      let returnRaw: Returned[];
-      if (req.showroomId) {
-        returnRaw = await dataSource
-          .getRepository(Returned)
-          .createQueryBuilder("r")
-          .leftJoinAndSelect("r.products", "products")
-          .leftJoinAndSelect("r.showroom", "showroom")
-          .leftJoinAndSelect("products.employee", "employee")
-          .where("showroom.id=:id", { id: req.showroomId })
-          .getMany();
-      } else {
-        returnRaw = await dataSource
-          .getRepository(Returned)
-          .createQueryBuilder("r")
-          .leftJoinAndSelect("r.products", "products")
-          .leftJoinAndSelect("products.employee", "employee")
-          .getMany();
-      }
-
-      const formattedReturn = returnRaw.map((r, id) => {
-        return {
-          id,
-          day: wdate(moment(r.createdAt, "DD-MM-YYYY").isoWeekday()),
-          date: moment(r.createdAt).format("DD-MM-YYYY"),
-          tagPrice: r.products.flatMap((p) => p.sellPrice),
-          finalPrice: r.products.flatMap((p) => p.sellPriceAfterDiscount),
-          invoiceNo: r.invoiceNo,
-          seller: r.products.flatMap((p) => ({
-            empName: p.employee.empName,
-            empPhone: p.employee.empPhone,
-          })),
-          check: r.check,
-          customer: r.customerPhone,
-          products: r.products.flatMap((p) => ({
-            itemCode: p.itemCode,
-            productName: p.productGroup,
-          })),
-        };
-      });
-
-      res.status(200).json(formattedReturn);
     } catch (e) {
       res.status(404).json({ message: e.message });
     }

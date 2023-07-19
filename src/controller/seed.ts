@@ -4,6 +4,7 @@ import Business from "../entities/business";
 import User from "../entities/user";
 import dataSource from "../typeorm.config";
 import Showroom from "../entities/showroom";
+import Barcode from "../entities/barcode";
 
 export const seed: ControllerFn = async (_req, res, _next) => {
   const isBusiness = await Business.find();
@@ -36,16 +37,30 @@ export const seed: ControllerFn = async (_req, res, _next) => {
     await user.save();
   }
 
-  const showroom= await dataSource.getRepository(Showroom).find()
+  const showroom = await dataSource.getRepository(Showroom).find();
 
-  if(!showroom.length){
+  if (!showroom.length) {
     const headOffice = new Showroom();
     headOffice.showroomName = "Head Office";
-    headOffice.showroomCode='HO'
-    headOffice.showroomMobile='0199999247'
-    headOffice.showroomAddress='Dhaka, Bangladesh'
+    headOffice.showroomCode = "HO";
+    headOffice.showroomMobile = "0199999247";
+    headOffice.showroomAddress = "Dhaka, Bangladesh";
 
-    await headOffice.save()
+    await headOffice.save();
+  }
+
+  const barcodes = await dataSource.getRepository(Barcode).find();
+  if (!barcodes.length) {
+    const barcode = new Barcode();
+    barcode.name = "Standard Barcode";
+    barcode.description = `Standard (3x1)" Barcode Settings`;
+    barcode.stickerInRow = 2;
+    barcode.stickerWidth = 1.5;
+    barcode.stickerHeight = 1;
+    barcode.paperWidth = 3;
+    barcode.paperHeight = 1;
+
+    barcode.save();
   }
 
   res.status(200).json("Seed Successful");
