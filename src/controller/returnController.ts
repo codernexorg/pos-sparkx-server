@@ -90,23 +90,35 @@ export const createReturnProduct: ControllerFn = async (req, res, next) => {
     for (const product of products) {
       product.sellingStatus = ProductStatus.Unsold;
       product.returnStatus = true;
+
       if (customer) {
         customer.returnPurchase(product);
+        await customer.save();
       }
       returnProduct.addProduct(product);
-      const employee = await appDataSource
-        .getRepository(Employee)
-        .createQueryBuilder('emp')
-        .leftJoinAndSelect('emp.sales', 'sales')
-        .leftJoinAndSelect('emp.returnSales', 'returnSales')
-        .where('emp.id=:id', { id: product.employee.id })
-        .getOne();
+      const employee = await Employee.findOne({
+        where: {
+          id: product.employee.id
+        },
+        relations: {
+          returnSales: true,
+          sales: true
+        }
+      });
 
-      if (employee) {
+      console.log(employee);
+
+      console.log(
+        '🚀 ~ file: returnController.ts:106 ~ constcreateReturnProduct:ControllerFn= ~ employee:',
+        employee
+      );
+
+      if (employee && employee.id) {
         employee.returnSale(product);
+        await employee.save();
       }
 
-      await Promise.all([customer?.save(), employee?.save(), product.save()]);
+      await product.save();
     }
 
     const amount: number = cash + bkash + cbl;

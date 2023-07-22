@@ -255,9 +255,6 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
         .leftJoinAndSelect('emp.sales', 'sales')
         .where('emp.empPhone=:empPhone', { empPhone: employees[i] })
         .getOne();
-
-      console.log(emp);
-
       if (emp) {
         await emp.addSale(product);
       }
