@@ -5,18 +5,17 @@ import {
   Entity,
   ManyToMany,
   ManyToOne,
-  OneToMany,
   PrimaryGeneratedColumn,
-  UpdateDateColumn,
-} from "typeorm";
-import { ProductStatus } from "../types";
-import TransferProduct from "./transfer";
-import Purchase from "./purchase";
-import Invoice from "./invoice";
-import Customer from "./customer";
-import Employee from "./employee";
-import HoldInvoice from "./holdInvoice";
-import ReturnProduct from "./returnProduct";
+  UpdateDateColumn
+} from 'typeorm';
+import { ProductStatus } from '../types';
+import TransferProduct from './transfer';
+import Purchase from './purchase';
+import Invoice from './invoice';
+import Customer from './customer';
+import Employee from './employee';
+import HoldInvoice from './holdInvoice';
+import ReturnProduct from './returnProduct';
 
 @Entity()
 export default class Product extends BaseEntity {
@@ -52,10 +51,10 @@ export default class Product extends BaseEntity {
 
   @Column({ nullable: true })
   transportationCost: number;
-  @Column({ type: "float" })
+  @Column({ type: 'float' })
   unitCost: number;
 
-  @Column({ nullable: true, type: "float" })
+  @Column({ nullable: true, type: 'float' })
   unitTotalCost: number;
 
   @Column({ nullable: true })
@@ -72,9 +71,9 @@ export default class Product extends BaseEntity {
 
   @Column({
     default: ProductStatus.Unsold,
-    type: "enum",
+    type: 'enum',
     enum: ProductStatus,
-    nullable: true,
+    nullable: true
   })
   sellingStatus: ProductStatus;
 
@@ -96,71 +95,53 @@ export default class Product extends BaseEntity {
   @Column({ nullable: true })
   brand: string;
 
-  @Column({ nullable: true, default: 0, type: "float" })
+  @Column({ nullable: true, default: 0, type: 'float' })
   discount: number;
 
-  @Column({ type: "float", default: 0, nullable: true })
+  @Column({ type: 'float', default: 0, nullable: true })
   sellPrice: number;
 
-  @Column({ type: "float", default: 0, nullable: true })
+  @Column({ type: 'float', default: 0, nullable: true })
   sellPriceAfterDiscount: number;
 
-  @ManyToOne(() => TransferProduct, (t) => t.transferredProducts, {
-    onDelete: "CASCADE",
-    onUpdate: "CASCADE",
-    nullable: true,
+  @ManyToOne(() => TransferProduct, t => t.transferredProducts, {
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+    nullable: true
   })
   transferredHistory: TransferProduct;
 
   @Column({ default: 1 })
   quantity: number;
 
-  @ManyToMany(() => Purchase, (purchase) => purchase.products)
+  @ManyToMany(() => Purchase, purchase => purchase.products)
   purchases: Purchase[];
 
-  @ManyToOne(() => Invoice, (invoice) => invoice.products, {
-    onDelete: "SET NULL",
-    onUpdate: "CASCADE",
-  })
+  @ManyToMany(() => Invoice, invoice => invoice.products)
   invoice: Invoice;
 
-  @ManyToOne(() => Customer, (customer) => customer.returnedProducts, {
-    onDelete: "SET NULL",
-    onUpdate: "CASCADE",
-  })
+  @ManyToMany(() => Customer, customer => customer.returnedProducts)
   returnedCustomer: Customer;
 
-  @ManyToOne(() => Customer, (customer) => customer.purchasedProducts, {
-    onDelete: "SET NULL",
-    onUpdate: "CASCADE",
-  })
+  @ManyToMany(() => Customer, customer => customer.purchasedProducts)
   purchasedCustomer: Customer;
 
-  @ManyToOne(() => Employee, (emp) => emp.sales, {
-    onUpdate: "CASCADE",
-    onDelete: "SET NULL",
-  })
+  @ManyToMany(() => Employee, emp => emp.sales)
   employee: Employee;
 
-  @ManyToOne(() => Employee, (emp) => emp.returnSales, {
-    onDelete: "SET NULL",
-    onUpdate: "CASCADE",
-  })
+  @ManyToMany(() => Employee, emp => emp.returnSales)
   returnedEmployee: Employee;
 
-  @Column({ type: "boolean", default: false })
+  @Column({ type: 'boolean', default: false })
   tagless: boolean;
 
-  @ManyToOne(() => HoldInvoice, (h) => h.items, {
-    onDelete: "SET NULL",
-    onUpdate: "CASCADE",
+  @ManyToOne(() => HoldInvoice, h => h.items, {
+    onDelete: 'SET NULL',
+    onUpdate: 'CASCADE'
   })
   hold: HoldInvoice;
 
-  @ManyToOne(() => ReturnProduct, (r) => r.returnProducts, {
-    onDelete: "CASCADE",
-    onUpdate: "CASCADE",
-  })
+  @ManyToMany(() => ReturnProduct, r => r.returnProducts)
   returnProduct: ReturnProduct;
 
   @CreateDateColumn()

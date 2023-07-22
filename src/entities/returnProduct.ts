@@ -2,11 +2,12 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  OneToMany,
+  JoinTable,
+  ManyToMany,
   PrimaryGeneratedColumn,
-  UpdateDateColumn,
-} from "typeorm";
-import Product from "./product";
+  UpdateDateColumn
+} from 'typeorm';
+import Product from './product';
 
 @Entity()
 export default class ReturnProduct {
@@ -19,25 +20,25 @@ export default class ReturnProduct {
   @Column({ default: false })
   exchange: boolean;
 
-  @Column()
-  customerPhone: string;
+  @Column({ nullable: true })
+  customerPhone?: string;
 
-  @Column({ type: "float" })
+  @Column({ type: 'float' })
   amount: number;
 
-  @OneToMany(() => Product, (p) => p.returnProduct, {
-    cascade: true,
-    eager: true,
+  @ManyToMany(() => Product, p => p.returnProduct, {
+    eager: true
   })
+  @JoinTable()
   returnProducts: Product[];
 
-  @Column({ default: 0, type: "float" })
+  @Column({ default: 0, type: 'float' })
   cash: number;
 
-  @Column({ default: 0, type: "float" })
+  @Column({ default: 0, type: 'float' })
   bkash: number;
 
-  @Column({ default: 0, type: "float" })
+  @Column({ default: 0, type: 'float' })
   cbl: number;
 
   @CreateDateColumn()

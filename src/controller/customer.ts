@@ -42,11 +42,6 @@ export const createCustomer: ControllerFn = async (req, res, next) => {
     }
     const isExist = await getCustomer({ customerPhone });
 
-    if (isExist) {
-      return next(
-        new ErrorHandler('Customer with this Phone already exists', 400)
-      );
-    }
     let showroom: Showroom | null;
 
     if (req.showroomId) {
@@ -57,6 +52,14 @@ export const createCustomer: ControllerFn = async (req, res, next) => {
 
     if (!showroom) {
       return next(new ErrorHandler('Showroom not found', 400));
+    }
+    if (isExist?.showroom.id === showroom.id) {
+      return next(
+        new ErrorHandler(
+          'Customer with this Phone already exists in this showroom',
+          400
+        )
+      );
     }
 
     //Creating Customer
@@ -180,9 +183,13 @@ export const importCustomers: ControllerFn = async (req, res, next) => {
       customer.crm = items?.crmPhone;
       customer.paid = items?.paid;
 
-      showroom?.customer.push(customer);
+      if (showroom) {
+        customer.showroom = showroom;
+        showroom.customer.push(customer);
+        await showroom.save();
+      }
+
       await customer.save();
-      await showroom?.save();
     });
 
     res.status(201).json({ message: 'Customer Imported Successfully' });
