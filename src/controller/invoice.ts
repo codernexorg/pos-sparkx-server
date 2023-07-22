@@ -1,18 +1,18 @@
-import Payment from "../entities/Payment";
-import Customer from "../entities/customer";
-import Employee from "../entities/employee";
-import Invoice from "../entities/invoice";
-import Product from "../entities/product";
-import ReturnProduct from "../entities/returnProduct";
-import Showroom from "../entities/showroom";
-import dataSource from "../typeorm.config";
+import Payment from '../entities/Payment';
+import Customer from '../entities/customer';
+import Employee from '../entities/employee';
+import Invoice from '../entities/invoice';
+import Product from '../entities/product';
+import ReturnProduct from '../entities/returnProduct';
+import Showroom from '../entities/showroom';
+import dataSource from '../typeorm.config';
 import {
   ControllerFn,
   InvoiceStatus,
   PaymentMethod,
-  ProductStatus,
-} from "../types";
-import ErrorHandler from "../utils/errorHandler";
+  ProductStatus
+} from '../types';
+import ErrorHandler from '../utils/errorHandler';
 
 export const createInvoice: ControllerFn = async (req, res, next) => {
   try {
@@ -32,7 +32,7 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
       bkash,
       cbl,
       salesTime,
-      returnId,
+      returnId
     } = req.body as {
       items: Product[];
       subtotal: number;
@@ -54,20 +54,20 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
 
     //Checking IF Payment Method Selected
     if (!paymentMethod) {
-      return next(new ErrorHandler("Please Select A Payment Method", 404));
+      return next(new ErrorHandler('Please Select A Payment Method', 404));
     }
 
     //Checking if there any product to sell
 
     if (!items || !items.length) {
-      return next(new ErrorHandler("No product to sell", 404));
+      return next(new ErrorHandler('No product to sell', 404));
     }
 
     //Checking if employee selected for all products coming to sell
 
     if (employees.length !== items.length) {
       return next(
-        new ErrorHandler("Please Select Employee For All Products", 400)
+        new ErrorHandler('Please Select Employee For All Products', 400)
       );
     }
 
@@ -75,7 +75,7 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
 
     if (!crmPhone) {
       return next(
-        new ErrorHandler("Please Select A CRM For This Customer", 404)
+        new ErrorHandler('Please Select A CRM For This Customer', 404)
       );
     }
 
@@ -83,14 +83,15 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
 
     const employee = await dataSource
       .getRepository(Employee)
-      .createQueryBuilder("emp")
-      .where("emp.empPhone=:crmPhone", { crmPhone })
+      .createQueryBuilder('emp')
+      .where('emp.empPhone=:crmPhone', { crmPhone })
+      .leftJoinAndSelect('emp.sales', 'sales')
       .getOne();
 
     // Checking If Employee Exist On Database
 
     if (!employee) {
-      return next(new ErrorHandler("No Employee Found", 404));
+      return next(new ErrorHandler('No Employee Found', 404));
     }
 
     // Finding The Showroom For Sells
@@ -98,14 +99,14 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
     const showroom =
       (await dataSource
         .getRepository(Showroom)
-        .createQueryBuilder("showroom")
-        .leftJoinAndSelect("showroom.invoices", "invoices")
-        .where("showroom.id=:id", { id: req.showroomId })
+        .createQueryBuilder('showroom')
+        .leftJoinAndSelect('showroom.invoices', 'invoices')
+        .where('showroom.id=:id', { id: req.showroomId })
         .getOne()) ||
       (await dataSource
         .getRepository(Showroom)
-        .createQueryBuilder("showroom")
-        .leftJoinAndSelect("showroom.invoices", "invoices")
+        .createQueryBuilder('showroom')
+        .leftJoinAndSelect('showroom.invoices', 'invoices')
         .where("showroom.showroomCode='HO'")
         .getOne());
 
@@ -113,22 +114,22 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
 
     const customer = await dataSource
       .getRepository(Customer)
-      .createQueryBuilder("customer")
-      .leftJoinAndSelect("customer.purchasedProducts", "purchasedProducts")
-      .where("customer.customerPhone=:customerMobile", {
-        customerMobile: customerPhone,
+      .createQueryBuilder('customer')
+      .leftJoinAndSelect('customer.purchasedProducts', 'purchasedProducts')
+      .where('customer.customerPhone=:customerMobile', {
+        customerMobile: customerPhone
       })
       .getOne();
 
     // Checking If Customer Exist On Database
     if (!customer) {
-      return next(new ErrorHandler("No Customer Found", 404));
+      return next(new ErrorHandler('No Customer Found', 404));
     }
 
     // Checking If Customer Have CRM Or Not
     if (!customer.crm && !crmPhone) {
       return next(
-        new ErrorHandler("Please Select A CRM For This Customer", 404)
+        new ErrorHandler('Please Select A CRM For This Customer', 404)
       );
     }
 
@@ -144,19 +145,19 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
     // Initiating Product To Sell
 
     if (!returnId && paidAmount < netAmount) {
-      return next(new ErrorHandler("Please Pay Payable Amount", 404));
+      return next(new ErrorHandler('Please Pay Payable Amount', 404));
     }
 
     const products = await dataSource
       .getRepository(Product)
-      .createQueryBuilder("product")
-      .where("product.itemCode IN (:...productCodes)", {
-        productCodes: items.map((item) => item.itemCode),
+      .createQueryBuilder('product')
+      .where('product.itemCode IN (:...productCodes)', {
+        productCodes: items.map(item => item.itemCode)
       })
       .getMany();
 
     if (products.length === 0) {
-      return next(new ErrorHandler("No unsold items found", 404));
+      return next(new ErrorHandler('No unsold items found', 404));
     }
 
     for (const [i, product] of products.entries()) {
@@ -181,7 +182,7 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
 
     invoice.paymentMethod = payment;
     invoice.products = products;
-    invoice.businessName = "SPARKX Lifestyle";
+    invoice.businessName = 'SPARKX Lifestyle';
     invoice.invoiceStatus = InvoiceStatus.Paid;
     invoice.invoiceAmount = withTax;
     invoice.netAmount = netAmount;
@@ -202,12 +203,12 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
     if (returnId) {
       const returned = await dataSource
         .getRepository(ReturnProduct)
-        .createQueryBuilder("re")
-        .leftJoinAndSelect("re.returnProducts", "returnProducts")
-        .where("re.id=:returnId", { returnId })
+        .createQueryBuilder('re')
+        .leftJoinAndSelect('re.returnProducts', 'returnProducts')
+        .where('re.id=:returnId', { returnId })
         .getOne();
       if (!returned) {
-        return next(new ErrorHandler("Return Not Found On DB", 404));
+        return next(new ErrorHandler('Return Not Found On DB', 404));
       }
       invoice.invoiceAmount -= returned.amount;
       invoice.netAmount -= returned.amount;
@@ -228,7 +229,7 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
     if (showroom) {
       invoice.showroomInvoiceCode =
         showroom.showroomCode +
-        (showroom.invoices.length + 1).toString().padStart(8, "0");
+        (showroom.invoices.length + 1).toString().padStart(8, '0');
       invoice.showroomAddress = showroom.showroomAddress;
       invoice.showroomMobile = showroom.showroomMobile;
       invoice.showroomName = showroom.showroomName;
@@ -237,8 +238,8 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
     }
 
     //Pushing products into Customer Purchase
-    if (customer && req.body.invoiceStatus !== "Hold") {
-      products.every(async (product) => {
+    if (customer && req.body.invoiceStatus !== 'Hold') {
+      products.every(async product => {
         customer.addPurchase(product);
       });
       customer.paid = Math.round(customer.paid + invoice.paidAmount);
@@ -247,18 +248,21 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
     }
 
     // Pushing Products Into Employee Sales List
-    products.every(async (product, i) => {
+    for (const [i, product] of products.entries()) {
       const emp = await dataSource
         .getRepository(Employee)
-        .createQueryBuilder("emp")
-        .leftJoinAndSelect("emp.sales", "sales")
-        .where("emp.empPhone=:empPhone", { empPhone: employees[i] })
+        .createQueryBuilder('emp')
+        .leftJoinAndSelect('emp.sales', 'sales')
+        .where('emp.empPhone=:empPhone', { empPhone: employees[i] })
         .getOne();
+
+      console.log(emp);
 
       if (emp) {
         await emp.addSale(product);
       }
-    });
+    }
+
     await invoice.save();
     res.status(200).json(invoice);
   } catch (e) {
@@ -276,43 +280,43 @@ export const getInvoices: ControllerFn = async (req, res, _next) => {
 
     const qb = dataSource
       .getRepository(Invoice)
-      .createQueryBuilder("invoice")
-      .leftJoinAndSelect("invoice.products", "products")
-      .leftJoinAndSelect("products.employee", "employee")
-      .leftJoinAndSelect("invoice.paymentMethod", "paymentMethod")
-      .leftJoinAndSelect("invoice.returned", "returned")
-      .leftJoinAndSelect("returned.returnProducts", "returnProducts")
-      .orderBy("invoice.createdAt", "DESC");
+      .createQueryBuilder('invoice')
+      .leftJoinAndSelect('invoice.products', 'products')
+      .leftJoinAndSelect('products.employee', 'employee')
+      .leftJoinAndSelect('invoice.paymentMethod', 'paymentMethod')
+      .leftJoinAndSelect('invoice.returned', 'returned')
+      .leftJoinAndSelect('returned.returnProducts', 'returnProducts')
+      .orderBy('invoice.createdAt', 'DESC');
 
     if (req.showroomId) {
       const showroom = await dataSource
         .getRepository(Showroom)
-        .createQueryBuilder("showroom")
-        .where("showroom.id = :id", { id: req.showroomId })
+        .createQueryBuilder('showroom')
+        .where('showroom.id = :id', { id: req.showroomId })
         .getOne();
 
       if (showroom) {
-        qb.andWhere("invoice.showroomName = :showroomName", {
-          showroomName: showroom.showroomName,
+        qb.andWhere('invoice.showroomName = :showroomName', {
+          showroomName: showroom.showroomName
         });
       }
     }
 
     if (showroom_name) {
-      qb.andWhere("invoice.showroomName = :showroom_name", {
-        showroom_name,
+      qb.andWhere('invoice.showroomName = :showroom_name', {
+        showroom_name
       });
     }
 
     if (
-      from_date !== "undefined" &&
-      to_date !== "undefined" &&
+      from_date !== 'undefined' &&
+      to_date !== 'undefined' &&
       from_date &&
       to_date
     ) {
-      qb.andWhere("DATE(invoice.createdAt) BETWEEN :from_date AND :to_date", {
+      qb.andWhere('DATE(invoice.createdAt) BETWEEN :from_date AND :to_date', {
         from_date,
-        to_date,
+        to_date
       });
     }
 

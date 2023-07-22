@@ -3,14 +3,16 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinTable,
+  ManyToMany,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
-  UpdateDateColumn,
-} from "typeorm";
-import Showroom from "./showroom";
-import Product from "./product";
-import ErrorHandler from "../utils/errorHandler";
+  UpdateDateColumn
+} from 'typeorm';
+import Showroom from './showroom';
+import Product from './product';
+import ErrorHandler from '../utils/errorHandler';
 
 @Entity()
 export default class Customer extends BaseEntity {
@@ -35,21 +37,21 @@ export default class Customer extends BaseEntity {
   @Column({ nullable: true, default: 0 })
   paid: number;
 
-  @OneToMany(() => Product, (iv) => iv.purchasedCustomer, {
-    eager: true,
-    cascade: true,
+  @ManyToMany(() => Product, iv => iv.purchasedCustomer, {
+    eager: true
   })
+  @JoinTable()
   purchasedProducts: Product[];
 
-  @OneToMany(() => Product, (rp) => rp.returnedCustomer, {
-    eager: true,
-    cascade: true,
+  @ManyToMany(() => Product, rp => rp.returnedCustomer, {
+    eager: true
   })
+  @JoinTable()
   returnedProducts: Product[];
 
-  @ManyToOne(() => Showroom, (sr) => sr.customer, {
-    onDelete: "SET NULL",
-    onUpdate: "CASCADE",
+  @ManyToOne(() => Showroom, sr => sr.customer, {
+    onDelete: 'SET NULL',
+    onUpdate: 'CASCADE'
   })
   showroom: Showroom;
 
@@ -75,11 +77,11 @@ export default class Customer extends BaseEntity {
     }
     if (this.purchasedProducts) {
       const productPurchased = this.purchasedProducts.find(
-        (p) => p.id === product.id
+        p => p.id === product.id
       );
       if (productPurchased) {
         this.purchasedProducts = this.purchasedProducts.filter(
-          (p) => p.id !== product.id
+          p => p.id !== product.id
         );
         this.returnedProducts.push(product);
       } else {

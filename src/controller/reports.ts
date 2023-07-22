@@ -1,16 +1,16 @@
 //Sells Reports
-import Invoice from "../entities/invoice";
-import { NextFunction, Request, Response } from "express";
-import { Repository } from "typeorm";
-import dataSource from "../typeorm.config";
-import moment from "moment";
-import wdate from "../helper/wdate";
-import ErrorHandler from "../utils/errorHandler";
-import Employee from "../entities/employee";
-import Product from "../entities/product";
-import Showroom from "../entities/showroom";
-import Customer from "../entities/customer";
-import { ControllerFn, ProductStatus } from "../types";
+import Invoice from '../entities/invoice';
+import { NextFunction, Request, Response } from 'express';
+import { Repository } from 'typeorm';
+import dataSource from '../typeorm.config';
+import moment from 'moment';
+import wdate from '../helper/wdate';
+import ErrorHandler from '../utils/errorHandler';
+import Employee from '../entities/employee';
+import Product from '../entities/product';
+import Showroom from '../entities/showroom';
+import Customer from '../entities/customer';
+import { ControllerFn, ProductStatus } from '../types';
 
 interface MonthlySales {
   [month: string]: number;
@@ -23,13 +23,13 @@ function getMonthlySalesQTY(
   const monthlySales: MonthlySales = {};
 
   const filteredSales = sales.filter(
-    (sale) => !returnSales.some((returnSale) => sale.id === returnSale.id)
+    sale => !returnSales.some(returnSale => sale.id === returnSale.id)
   );
 
-  filteredSales.forEach((sale) => {
-    const month = moment(sale.updatedAt).format("MMM");
-    const year = moment(sale.updatedAt).format("YYYY");
-    const monthName = `${month.length < 3 ? "0" : ""}${month}-${year}`;
+  filteredSales.forEach(sale => {
+    const month = moment(sale.updatedAt).format('MMM');
+    const year = moment(sale.updatedAt).format('YYYY');
+    const monthName = `${month.length < 3 ? '0' : ''}${month}-${year}`;
     if (!monthlySales[monthName]) {
       monthlySales[monthName] = 0;
     }
@@ -39,7 +39,7 @@ function getMonthlySalesQTY(
   return Object.entries(monthlySales).map(([date, quantity]) => ({
     date,
     quantity,
-    month: moment(date).month("M").format("MMMM"),
+    month: moment(date).month('M').format('MMMM')
   }));
 }
 
@@ -49,13 +49,13 @@ function getMonthlySalesAmount(
 ): { date: string; amount: number }[] {
   const monthlySales: MonthlySales = {};
   const filteredSales = sales.filter(
-    (sale) => !returnSales.some((returnSale) => sale.id === returnSale.id)
+    sale => !returnSales.some(returnSale => sale.id === returnSale.id)
   );
 
-  filteredSales.forEach((sale) => {
-    const month = moment(sale.updatedAt).format("MMM");
-    const year = moment(sale.updatedAt).format("YYYY");
-    const monthName = `${month.length < 3 ? "0" : ""}${month}-${year}`;
+  filteredSales.forEach(sale => {
+    const month = moment(sale.updatedAt).format('MMM');
+    const year = moment(sale.updatedAt).format('YYYY');
+    const monthName = `${month.length < 3 ? '0' : ''}${month}-${year}`;
     if (!monthlySales[monthName]) {
       monthlySales[monthName] = 0;
     }
@@ -65,29 +65,29 @@ function getMonthlySalesAmount(
   return Object.entries(monthlySales).map(([date, amount]) => ({
     date,
     amount,
-    month: moment(date).month("M").format("MMMM"),
+    month: moment(date).month('M').format('MMMM')
   }));
 }
 
 function getDailySales(sales: Product[], returnSales: Product[]) {
   const salesByDay: Record<string, number> = {};
   const filteredSales = sales.filter(
-    (sale) => !returnSales.some((returnSale) => sale.id === returnSale.id)
+    sale => !returnSales.some(returnSale => sale.id === returnSale.id)
   );
-  filteredSales.forEach((sale) => {
+  filteredSales.forEach(sale => {
     //moment(sale.updatedAt).format("DD-MM-YYYY")
-    const saleDate = new Date(sale.updatedAt).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "numeric",
-      day: "numeric",
+    const saleDate = new Date(sale.updatedAt).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric'
     });
     salesByDay[saleDate] =
       (salesByDay[saleDate] || 0) + sale.sellPriceAfterDiscount;
   });
   return Object.entries(salesByDay).map(([date, total]) => ({
-    date: moment(date).format("DD-MM-YYYY"),
+    date: moment(date).format('DD-MM-YYYY'),
     total,
-    day: wdate(new Date(date).getDay()),
+    day: wdate(new Date(date).getDay())
   }));
 }
 
@@ -103,17 +103,17 @@ export default class ReportController {
 
     const qb = dataSource
       .getRepository(Invoice)
-      .createQueryBuilder("invoice")
-      .orderBy("createdAt");
+      .createQueryBuilder('invoice')
+      .orderBy('createdAt');
 
     if (to_date && from_date) {
-      qb.where("Date(invoice.createdAt) >= :from_date", {
-        from_date,
-      }).andWhere("Date(invoice.createdAt) <= :to_date", { to_date });
+      qb.where('Date(invoice.createdAt) >= :from_date', {
+        from_date
+      }).andWhere('Date(invoice.createdAt) <= :to_date', { to_date });
     }
     if (today) {
-      qb.where("Date(invoice.createdAt) = :today", {
-        today,
+      qb.where('Date(invoice.createdAt) = :today', {
+        today
       });
     }
 
@@ -132,41 +132,41 @@ export default class ReportController {
       if (
         !month ||
         !month.length ||
-        typeof month !== "string" ||
+        typeof month !== 'string' ||
         !month.match(/^[0-9]+$/)
       ) {
-        return _next(new ErrorHandler("Invalid month", 400));
+        return _next(new ErrorHandler('Invalid month', 400));
       }
 
       if (!showroom) {
-        return _next(new ErrorHandler("Must Select Showroom", 404));
+        return _next(new ErrorHandler('Must Select Showroom', 404));
       }
 
       //Dynamically create a date object
 
-      const date = moment(Number(month), "M", true).format("YYYY-MM-DD");
-      const startOfMonth = moment(date).startOf("month").format("YYYY-MM-DD");
-      const endOfMonth = moment(date).endOf("month").format("YYYY-MM-DD");
+      const date = moment(Number(month), 'M', true).format('YYYY-MM-DD');
+      const startOfMonth = moment(date).startOf('month').format('YYYY-MM-DD');
+      const endOfMonth = moment(date).endOf('month').format('YYYY-MM-DD');
 
       const showroomData = await dataSource
         .getRepository(Showroom)
-        .createQueryBuilder("showroom")
-        .where("showroom.showroomCode=:showroomCode", {
-          showroomCode: showroom as string,
+        .createQueryBuilder('showroom')
+        .where('showroom.showroomCode=:showroomCode', {
+          showroomCode: showroom as string
         })
         .getOne();
 
       const rawSales = await dataSource
         .getRepository(Invoice)
-        .createQueryBuilder("invoice")
-        .leftJoinAndSelect("invoice.products", "products")
-        .leftJoinAndSelect("invoice.paymentMethod", "paymentMethod")
+        .createQueryBuilder('invoice')
+        .leftJoinAndSelect('invoice.products', 'products')
+        .leftJoinAndSelect('invoice.paymentMethod', 'paymentMethod')
         .where(
-          "invoice.createdAt >= :start_date AND invoice.createdAt <= :end_date",
+          'invoice.createdAt >= :start_date AND invoice.createdAt <= :end_date',
           { start_date: startOfMonth, end_date: endOfMonth }
         )
-        .andWhere("invoice.showroom = :showroom", {
-          showroom: showroomData?.id,
+        .andWhere('invoice.showroom = :showroom', {
+          showroom: showroomData?.id
         })
         .getMany();
 
@@ -186,18 +186,13 @@ export default class ReportController {
 
       const dailySales: Map<string, DailySalesReponse> = new Map();
 
-      rawSales.forEach((iv) => {
+      rawSales.forEach(iv => {
         const createdAt = moment(iv.createdAt);
-        const currentDate = createdAt.format("DD-MM-YYYY");
-        const currentMonth = createdAt.format("MMMM");
-        const currentYear = createdAt.format("YYYY");
+        const currentDate = createdAt.format('DD-MM-YYYY');
+        const currentMonth = createdAt.format('MMMM');
+        const currentYear = createdAt.format('YYYY');
 
-        const productQuantity = iv.products.reduce((count, p) => {
-          if (p.sellingStatus === ProductStatus.Sold) {
-            return count + 1;
-          }
-          return count;
-        }, 0);
+        const productQuantity = iv.products.length;
 
         if (dailySales.has(currentDate)) {
           const salesItem = dailySales.get(currentDate);
@@ -256,7 +251,7 @@ export default class ReportController {
             bkashAmount,
             cblAmount,
             cashAmount,
-            gapAmount,
+            gapAmount
           });
         }
       });
@@ -282,20 +277,21 @@ export default class ReportController {
           const totalBkashAmount = arr.reduce((a, b) => a + b.bkashAmount, 0);
           const totalCblAmount = arr.reduce((a, b) => a + b.cblAmount, 0);
           const totalGapAmount = arr.reduce((a, b) => a + b.gapAmount, 0);
+
           return {
             ...d,
             totalQty,
             totalAmount,
             average: d.total / d.quantity,
             totalAverage: totalAmount / totalQty,
-            day: wdate(moment(d.date, "DD-MM-YYYY").isoWeekday()),
+            day: wdate(moment(d.date, 'DD-MM-YYYY').isoWeekday()),
             id: _idx,
             totalTaglessAmount,
             totalWithOutTaglessAmount,
             totalCashAmount,
             totalBkashAmount,
             totalCblAmount,
-            totalGapAmount,
+            totalGapAmount
           };
         })
       );
@@ -315,53 +311,53 @@ export default class ReportController {
       const { showroom, month } = req.query;
 
       if (!showroom) {
-        return _next(new ErrorHandler("Must Select Showroom", 404));
+        return _next(new ErrorHandler('Must Select Showroom', 404));
       }
       // //Dynamically create a date object
       //
-      const date = moment(Number(month), "M", true).format("YYYY-MM-DD");
+      const date = moment(Number(month), 'M', true).format('YYYY-MM-DD');
       //
       //Start OF Month
-      const startOfMonth = moment(date).startOf("month").format("MMMM-YYYY");
+      const startOfMonth = moment(date).startOf('month').format('MMMM-YYYY');
       //End OF Month
-      const endOfMonth = moment(date).endOf("month").format("MMMM-YYYY");
+      const endOfMonth = moment(date).endOf('month').format('MMMM-YYYY');
       const showroomData = await dataSource
         .getRepository(Showroom)
-        .createQueryBuilder("showroom")
-        .leftJoinAndSelect("showroom.employees", "employees")
-        .where("showroom.showroomCode=:showroomCode", {
-          showroomCode: showroom as string,
+        .createQueryBuilder('showroom')
+        .leftJoinAndSelect('showroom.employees', 'employees')
+        .where('showroom.showroomCode=:showroomCode', {
+          showroomCode: showroom as string
         })
         .getOne();
 
       if (!showroomData) {
         return _next(
-          new ErrorHandler("Happeing Problem To Find Showroom", 404)
+          new ErrorHandler('Happeing Problem To Find Showroom', 404)
         );
       }
 
       const data = await dataSource
         .getRepository(Employee)
-        .createQueryBuilder("emp")
-        .leftJoinAndSelect("emp.sales", "sales")
-        .leftJoinAndSelect("emp.returnSales", "returnSales")
-        .leftJoinAndSelect("emp.showroom", "showroom")
-        .where("showroom.id = :id", { id: showroomData.id })
+        .createQueryBuilder('emp')
+        .leftJoinAndSelect('emp.sales', 'sales')
+        .leftJoinAndSelect('emp.returnSales', 'returnSales')
+        .leftJoinAndSelect('emp.showroom', 'showroom')
+        .where('showroom.id = :id', { id: showroomData.id })
         .andWhere(
           'DATE_FORMAT(sales.updatedAt,"%M-%Y") >= :start_date AND DATE_FORMAT(sales.updatedAt,"%M-%Y") <= :end_date',
           {
             start_date: startOfMonth,
-            end_date: endOfMonth,
+            end_date: endOfMonth
           }
         )
         .getMany();
 
-      const newData = data.map((employee) => {
+      const newData = data.map(employee => {
         return {
           empName: employee.empName,
           sales: getDailySales(employee.sales, employee.returnSales),
-          month: moment(Number(month), "M", true).format("MMMM"),
-          year: moment(Number(month), "M", true).format("YYYY"),
+          month: moment(Number(month), 'M', true).format('MMMM'),
+          year: moment(Number(month), 'M', true).format('YYYY')
         };
       });
 
@@ -381,25 +377,25 @@ export default class ReportController {
       const { showroom, year } = req.query;
 
       if (!showroom) {
-        return next(new ErrorHandler("Must Select Showroom", 404));
+        return next(new ErrorHandler('Must Select Showroom', 404));
       }
       const showroomData = await dataSource
         .getRepository(Showroom)
-        .createQueryBuilder("showroom")
-        .where("showroom.showroomCode=:showroomCode", {
-          showroomCode: showroom as string,
+        .createQueryBuilder('showroom')
+        .where('showroom.showroomCode=:showroomCode', {
+          showroomCode: showroom as string
         })
         .getOne();
       const data = await dataSource
         .getRepository(Employee)
-        .createQueryBuilder("emp")
-        .leftJoinAndSelect("emp.sales", "sales")
-        .leftJoinAndSelect("emp.returnSales", "returnSales")
+        .createQueryBuilder('emp')
+        .leftJoinAndSelect('emp.sales', 'sales')
+        .leftJoinAndSelect('emp.returnSales', 'returnSales')
         .where('DATE_FORMAT(emp.updatedAt,"%Y")=:year', { year })
-        .andWhere("emp.showroom=:showroom", { showroom: showroomData?.id })
+        .andWhere('emp.showroom=:showroom', { showroom: showroomData?.id })
         .getMany();
 
-      const currentYearData = data.map((employee) => {
+      const currentYearData = data.map(employee => {
         const monthlySales = getMonthlySalesQTY(
           employee.sales,
           employee.returnSales
@@ -409,18 +405,17 @@ export default class ReportController {
       });
 
       const prevYear = Number(year) - 1;
-      console.log("prev year", prevYear);
 
       const prevData = await dataSource
         .getRepository(Employee)
-        .createQueryBuilder("emp")
-        .leftJoinAndSelect("emp.sales", "sales")
-        .leftJoinAndSelect("emp.returnSales", "returnSales")
+        .createQueryBuilder('emp')
+        .leftJoinAndSelect('emp.sales', 'sales')
+        .leftJoinAndSelect('emp.returnSales', 'returnSales')
         .where('DATE_FORMAT(emp.updatedAt,"%Y")=:year', { year: prevYear })
-        .andWhere("emp.showroom=:showroom", { showroom: showroomData?.id })
+        .andWhere('emp.showroom=:showroom', { showroom: showroomData?.id })
         .getMany();
 
-      const prevYearData = prevData.map((employee) => {
+      const prevYearData = prevData.map(employee => {
         const monthlySales = getMonthlySalesQTY(
           employee.sales,
           employee.returnSales
@@ -445,25 +440,25 @@ export default class ReportController {
       const { showroom, year } = req.query;
 
       if (!showroom) {
-        return next(new ErrorHandler("Must Select Showroom", 404));
+        return next(new ErrorHandler('Must Select Showroom', 404));
       }
       const showroomData = await dataSource
         .getRepository(Showroom)
-        .createQueryBuilder("showroom")
-        .where("showroom.showroomCode=:showroomCode", {
-          showroomCode: showroom as string,
+        .createQueryBuilder('showroom')
+        .where('showroom.showroomCode=:showroomCode', {
+          showroomCode: showroom as string
         })
         .getOne();
       const data = await dataSource
         .getRepository(Employee)
-        .createQueryBuilder("emp")
-        .leftJoinAndSelect("emp.sales", "sales")
-        .leftJoinAndSelect("emp.returnSales", "returnSales")
+        .createQueryBuilder('emp')
+        .leftJoinAndSelect('emp.sales', 'sales')
+        .leftJoinAndSelect('emp.returnSales', 'returnSales')
         .where('DATE_FORMAT(emp.updatedAt,"%Y")=:year', { year })
-        .andWhere("emp.showroom=:showroom", { showroom: showroomData?.id })
+        .andWhere('emp.showroom=:showroom', { showroom: showroomData?.id })
         .getMany();
 
-      const currentYearData = data.map((employee) => {
+      const currentYearData = data.map(employee => {
         const monthlySales = getMonthlySalesAmount(
           employee.sales,
           employee.returnSales
@@ -475,14 +470,14 @@ export default class ReportController {
 
       const prevData = await dataSource
         .getRepository(Employee)
-        .createQueryBuilder("emp")
-        .leftJoinAndSelect("emp.sales", "sales")
-        .leftJoinAndSelect("emp.returnSales", "returnSales")
+        .createQueryBuilder('emp')
+        .leftJoinAndSelect('emp.sales', 'sales')
+        .leftJoinAndSelect('emp.returnSales', 'returnSales')
         .where('DATE_FORMAT(emp.updatedAt,"%Y")=:year', { year: prevYear })
-        .andWhere("emp.showroom=:showroom", { showroom: showroomData?.id })
+        .andWhere('emp.showroom=:showroom', { showroom: showroomData?.id })
         .getMany();
 
-      const prevYearData = prevData.map((employee) => {
+      const prevYearData = prevData.map(employee => {
         const monthlySales = getMonthlySalesAmount(
           employee.sales,
           employee.returnSales
@@ -505,29 +500,31 @@ export default class ReportController {
     try {
       const { showroomCode } = req.query;
       if (!showroomCode) {
-        return _next(new ErrorHandler("Showroom Must Be Selected", 404));
+        return _next(new ErrorHandler('Showroom Must Be Selected', 404));
       }
       const data = await dataSource
         .getRepository(Customer)
-        .createQueryBuilder("customer")
-        .leftJoinAndSelect("customer.purchasedProducts", "product")
-        .leftJoinAndSelect("customer.showroom", "showroom")
+        .createQueryBuilder('customer')
+        .leftJoinAndSelect('customer.purchasedProducts', 'product')
+        .leftJoinAndSelect('customer.showroom', 'showroom')
         .select([
-          "customerName",
-          "customerPhone",
-          "showroom",
-          "crm",
+          'customerName',
+          'customerPhone',
+          'showroom',
+          'crm',
           'DATE_FORMAT(customer.createdAt,"%d-%m-%y") as createdAt',
           'DATE_FORMAT(customer.updatedAt,"%Y") as year',
-          "SUM(product.quantity) as quantity",
+          'SUM(product.quantity) as quantity'
         ])
-        .where("YEAR(product.updatedAt) BETWEEN :start AND :end", {
+        .where('YEAR(product.updatedAt) BETWEEN :start AND :end', {
           start: 2020,
-          end: moment().year(),
+          end: moment().year()
         })
-        .andWhere("showroom.showroomCode=:showroomCode", { showroomCode })
-        .groupBy("customer.id")
+        .andWhere('showroom.showroomCode=:showroomCode', { showroomCode })
+        .groupBy('customer.id')
         .getRawMany();
+
+      console.log(moment().year());
 
       const newData = data.map(
         async ({
@@ -537,12 +534,12 @@ export default class ReportController {
           quantity,
           createdAt,
           year,
-          showroom_showroomName,
+          showroom_showroomName
         }) => {
           const emp = await dataSource
             .getRepository(Employee)
-            .createQueryBuilder("emp")
-            .where("emp.empPhone = :crm", { crm })
+            .createQueryBuilder('emp')
+            .where('emp.empPhone = :crm', { crm })
             .getOne();
           return {
             customerName,
@@ -551,7 +548,7 @@ export default class ReportController {
             crm: emp?.empName,
             createdAt,
             year: Number(year),
-            showroom: showroom_showroomName,
+            showroom: showroom_showroomName
           };
         }
       );
@@ -570,28 +567,28 @@ export default class ReportController {
     try {
       const { showroomCode } = req.query;
       if (!showroomCode) {
-        return _next(new ErrorHandler("Showroom Must Be Selected", 404));
+        return _next(new ErrorHandler('Showroom Must Be Selected', 404));
       }
       const data = await dataSource
         .getRepository(Customer)
-        .createQueryBuilder("customer")
-        .leftJoinAndSelect("customer.purchasedProducts", "product")
-        .leftJoinAndSelect("customer.showroom", "showroom")
+        .createQueryBuilder('customer')
+        .leftJoinAndSelect('customer.purchasedProducts', 'product')
+        .leftJoinAndSelect('customer.showroom', 'showroom')
         .select([
-          "customerName",
-          "customerPhone",
-          "showroom",
+          'customerName',
+          'customerPhone',
+          'showroom',
           'DATE_FORMAT(customer.createdAt,"%d-%m-%y") as createdAt',
           'DATE_FORMAT(customer.updatedAt,"%Y") as year',
-          "crm",
-          "SUM(product.sellPriceAfterDiscount) as amount",
+          'crm',
+          'SUM(product.sellPriceAfterDiscount) as amount'
         ])
-        .where("YEAR(product.updatedAt) BETWEEN :start AND :end", {
+        .where('YEAR(product.updatedAt) BETWEEN :start AND :end', {
           start: 2020,
-          end: moment().year(),
+          end: moment().year()
         })
-        .andWhere("showroom.showroomCode=:showroomCode", { showroomCode })
-        .groupBy("customer.id")
+        .andWhere('showroom.showroomCode=:showroomCode', { showroomCode })
+        .groupBy('customer.id')
         .getRawMany();
 
       const newData = data.map(
@@ -602,12 +599,12 @@ export default class ReportController {
           amount,
           createdAt,
           year,
-          showroom_showroomName,
+          showroom_showroomName
         }) => {
           const emp = await dataSource
             .getRepository(Employee)
-            .createQueryBuilder("emp")
-            .where("emp.empPhone = :crm", { crm })
+            .createQueryBuilder('emp')
+            .where('emp.empPhone = :crm', { crm })
             .getOne();
 
           return {
@@ -617,7 +614,7 @@ export default class ReportController {
             crm: emp?.empName,
             createdAt,
             year: Number(year),
-            showroom: showroom_showroomName,
+            showroom: showroom_showroomName
           };
         }
       );
@@ -636,19 +633,18 @@ export default class ReportController {
     try {
       const { supplierName, productGroup } = req.query;
       if (!productGroup) {
-        return next(new ErrorHandler("Please Select A Product Group", 404));
+        return next(new ErrorHandler('Please Select A Product Group', 404));
       }
       if (supplierName) {
-        console.log("With Supplier NAme");
         const products = await dataSource
           .getRepository(Product)
-          .createQueryBuilder("product")
+          .createQueryBuilder('product')
           .select(
-            "product.showroomName, product.productGroup, product.sellingStatus, SUM(product.quantity) as quantity"
+            'product.showroomName, product.productGroup, product.sellingStatus, SUM(product.quantity) as quantity'
           )
-          .groupBy("product.showroomName, product.sellingStatus")
-          .where("supplierName=:supplierName", { supplierName })
-          .andWhere("productGroup=:productGroup", { productGroup })
+          .groupBy('product.showroomName, product.sellingStatus')
+          .where('supplierName=:supplierName', { supplierName })
+          .andWhere('productGroup=:productGroup', { productGroup })
           .getRawMany();
 
         const showroomProducts = products.reduce((result, product) => {
@@ -665,14 +661,14 @@ export default class ReportController {
               sold: 0,
               unsold: 0,
               total: 0,
-              rating: 0,
+              rating: 0
             });
           }
 
           const index = result.findIndex((p: any) => p.key === key);
-          if (sellingStatus === "Sold") {
+          if (sellingStatus === 'Sold') {
             result[index].sold += Number(quantity);
-          } else if (sellingStatus === "Unsold") {
+          } else if (sellingStatus === 'Unsold') {
             result[index].unsold += Number(quantity);
           }
           result[index].total = result[index].sold + result[index].unsold;
@@ -689,12 +685,12 @@ export default class ReportController {
       } else {
         const products = await dataSource
           .getRepository(Product)
-          .createQueryBuilder("product")
+          .createQueryBuilder('product')
           .select(
-            "product.showroomName, product.productGroup, product.sellingStatus, SUM(product.quantity) as quantity"
+            'product.showroomName, product.productGroup, product.sellingStatus, SUM(product.quantity) as quantity'
           )
-          .groupBy("product.showroomName, product.sellingStatus")
-          .andWhere("productGroup=:productGroup", { productGroup })
+          .groupBy('product.showroomName, product.sellingStatus')
+          .andWhere('productGroup=:productGroup', { productGroup })
           .getRawMany();
 
         const showroomProducts = products.reduce((result, product) => {
@@ -711,14 +707,14 @@ export default class ReportController {
               sold: 0,
               unsold: 0,
               total: 0,
-              rating: 0,
+              rating: 0
             });
           }
 
           const index = result.findIndex((p: any) => p.key === key);
-          if (sellingStatus === "Sold") {
+          if (sellingStatus === 'Sold') {
             result[index].sold += Number(quantity);
-          } else if (sellingStatus === "Unsold") {
+          } else if (sellingStatus === 'Unsold') {
             result[index].unsold += Number(quantity);
           }
           result[index].total = result[index].sold + result[index].unsold;
@@ -749,7 +745,7 @@ export default class ReportController {
       if (!sellingStatus || !productGroup) {
         return next(
           new ErrorHandler(
-            "Product Group | Selling Status must be selected",
+            'Product Group | Selling Status must be selected',
             404
           )
         );
@@ -771,7 +767,7 @@ export default class ReportController {
         const showrooms: { [showroomName: string]: ProductData[] } = {};
 
         // Group products by showroomName
-        products.forEach((product) => {
+        products.forEach(product => {
           if (showrooms[product.showroomName]) {
             showrooms[product.showroomName].push(product);
           } else {
@@ -784,7 +780,7 @@ export default class ReportController {
         for (const [showroomName, products] of Object.entries(showrooms)) {
           const showroom: Showroom = {
             showroomName,
-            showroomProducts: products,
+            showroomProducts: products
           };
           result.push(showroom);
         }
@@ -794,26 +790,26 @@ export default class ReportController {
       if (supplierName) {
         const products = await dataSource
           .getRepository(Product)
-          .createQueryBuilder("product")
+          .createQueryBuilder('product')
           .select(
-            "product.size,product.productGroup,product.sellingStatus,SUM(product.quantity) as quantity,product.showroomName"
+            'product.size,product.productGroup,product.sellingStatus,SUM(product.quantity) as quantity,product.showroomName'
           )
-          .where("productGroup=:productGroup", { productGroup })
-          .andWhere("sellingStatus=:sellingStatus", { sellingStatus })
-          .andWhere("supplierName=:supplierName", { supplierName })
-          .groupBy("product.showroomName,product.size")
+          .where('productGroup=:productGroup', { productGroup })
+          .andWhere('sellingStatus=:sellingStatus', { sellingStatus })
+          .andWhere('supplierName=:supplierName', { supplierName })
+          .groupBy('product.showroomName,product.size')
           .getRawMany();
         res.status(200).json(groupCarsByShowroom(products));
       } else {
         const products = await dataSource
           .getRepository(Product)
-          .createQueryBuilder("product")
+          .createQueryBuilder('product')
           .select(
-            "product.size,product.productGroup,product.sellingStatus,SUM(product.quantity) as quantity,product.showroomName "
+            'product.size,product.productGroup,product.sellingStatus,SUM(product.quantity) as quantity,product.showroomName '
           )
-          .where("productGroup=:productGroup", { productGroup })
-          .andWhere("sellingStatus=:sellingStatus", { sellingStatus })
-          .groupBy("product.showroomName,product.size")
+          .where('productGroup=:productGroup', { productGroup })
+          .andWhere('sellingStatus=:sellingStatus', { sellingStatus })
+          .groupBy('product.showroomName,product.size')
           .getRawMany();
         res.status(200).json(groupCarsByShowroom(products));
       }
@@ -829,29 +825,29 @@ export default class ReportController {
       if (today) {
         const sales = await dataSource
           .getRepository(Employee)
-          .createQueryBuilder("employee")
-          .leftJoinAndSelect("employee.sales", "sales")
+          .createQueryBuilder('employee')
+          .leftJoinAndSelect('employee.sales', 'sales')
           .select(
-            "sales.productGroup as productGroup,SUM(sales.sellPriceAfterDiscount) as amount,sales.showroomName as showroom"
+            'sales.productGroup as productGroup,SUM(sales.sellPriceAfterDiscount) as amount,sales.showroomName as showroom'
           )
-          .where("DATE(sales.updatedAt)=:today", { today })
-          .groupBy("productGroup")
+          .where('DATE(sales.updatedAt)=:today', { today })
+          .groupBy('productGroup')
           .getRawMany();
         res.status(200).json(sales);
       }
 
       if (form_date) {
-        const currentDate = moment().format("YYYY-MM-DD");
+        const currentDate = moment().format('YYYY-MM-DD');
         const sales = await dataSource
           .getRepository(Employee)
-          .createQueryBuilder("employee")
-          .leftJoinAndSelect("employee.sales", "sales")
+          .createQueryBuilder('employee')
+          .leftJoinAndSelect('employee.sales', 'sales')
           .select(
-            "sales.productGroup as productGroup,SUM(sales.sellPriceAfterDiscount) as amount,sales.showroomName as showroom"
+            'sales.productGroup as productGroup,SUM(sales.sellPriceAfterDiscount) as amount,sales.showroomName as showroom'
           )
-          .where("DATE(sales.updatedAt)>=:form_date", { form_date })
-          .andWhere("DATE(sales.updatedAt)<=:currentDate", { currentDate })
-          .groupBy("productGroup,showroom")
+          .where('DATE(sales.updatedAt)>=:form_date', { form_date })
+          .andWhere('DATE(sales.updatedAt)<=:currentDate', { currentDate })
+          .groupBy('productGroup,showroom')
           .getRawMany();
         res.status(200).json(sales);
       }
@@ -871,35 +867,35 @@ export const getTopCustomer: ControllerFn = async (_req, res) => {
     if (_req.showroomId) {
       customers = await dataSource
         .getRepository(Showroom)
-        .createQueryBuilder("showroom")
-        .leftJoinAndSelect("showroom.customer", "customer")
-        .leftJoinAndSelect("customer.purchasedProducts", "product")
+        .createQueryBuilder('showroom')
+        .leftJoinAndSelect('showroom.customer', 'customer')
+        .leftJoinAndSelect('customer.purchasedProducts', 'product')
         .select(
-          "customer.customerName as customerName,SUM(product.quantity) as quantity,customer.customerPhone as customerPhone,showroom.showroomName as showroomName"
+          'customer.customerName as customerName,SUM(product.quantity) as quantity,customer.customerPhone as customerPhone,showroom.showroomName as showroomName'
         )
         .where(`MONTH(product.updatedAt) = :month`, { month: currentMonth })
-        .andWhere("showroom.id=:id", { id: _req.showroomId })
-        .groupBy("customer.id")
-        .orderBy("quantity", "DESC")
+        .andWhere('showroom.id=:id', { id: _req.showroomId })
+        .groupBy('customer.id')
+        .orderBy('quantity', 'DESC')
         .limit(5)
         .getRawMany();
     } else {
       customers = await dataSource
         .getRepository(Customer)
-        .createQueryBuilder("customer")
-        .leftJoinAndSelect("customer.purchasedProducts", "product")
-        .leftJoinAndSelect("customer.showroom", "showroom")
+        .createQueryBuilder('customer')
+        .leftJoinAndSelect('customer.purchasedProducts', 'product')
+        .leftJoinAndSelect('customer.showroom', 'showroom')
         .select(
-          "customerName,SUM(product.quantity) as quantity,customer.customerPhone as customerPhone,showroom.showroomName as showroomName"
+          'customerName,SUM(product.quantity) as quantity,customer.customerPhone as customerPhone,showroom.showroomName as showroomName'
         )
         .where(`MONTH(product.updatedAt) = :month`, { month: currentMonth })
-        .groupBy("customer.id")
-        .orderBy("quantity", "DESC")
+        .groupBy('customer.id')
+        .orderBy('quantity', 'DESC')
         .limit(5)
         .getRawMany();
     }
     //All Customer Data
-    console.log(customers);
+
     res.status(200).json(customers);
   } catch (e) {
     res.status(500).json({ message: e.message });
@@ -915,33 +911,33 @@ export const salesQtyReport: ControllerFn = async (req, res, _next) => {
     if (req.showroomId) {
       qb = dataSource
         .getRepository(Showroom)
-        .createQueryBuilder("showroom")
-        .leftJoinAndSelect("showroom.invoices", "invoice")
+        .createQueryBuilder('showroom')
+        .leftJoinAndSelect('showroom.invoices', 'invoice')
         .select(
-          "SUM(invoice.quantity) as quantity,Date(invoice.createdAt) as createdAt"
+          'SUM(invoice.quantity) as quantity,Date(invoice.createdAt) as createdAt'
         )
-        .where("showroom.id=:id", { id: req.showroomId })
-        .orderBy("createdAt")
-        .groupBy("Date(invoice.createdAt)");
+        .where('showroom.id=:id', { id: req.showroomId })
+        .orderBy('createdAt')
+        .groupBy('Date(invoice.createdAt)');
     } else {
       qb = dataSource
         .getRepository(Invoice)
-        .createQueryBuilder("invoice")
+        .createQueryBuilder('invoice')
         .select(
-          "SUM(invoice.quantity) as quantity,Date(invoice.createdAt) as createdAt"
+          'SUM(invoice.quantity) as quantity,Date(invoice.createdAt) as createdAt'
         )
-        .orderBy("createdAt")
-        .groupBy("Date(invoice.createdAt)");
+        .orderBy('createdAt')
+        .groupBy('Date(invoice.createdAt)');
     }
 
     if (to_date && from_date) {
-      qb.where("Date(invoice.createdAt) >= :from_date", {
-        from_date,
-      }).andWhere("Date(invoice.createdAt) <= :to_date", { to_date });
+      qb.where('Date(invoice.createdAt) >= :from_date', {
+        from_date
+      }).andWhere('Date(invoice.createdAt) <= :to_date', { to_date });
     }
     if (today) {
-      qb.where("Date(invoice.createdAt) = :today", {
-        today,
+      qb.where('Date(invoice.createdAt) = :today', {
+        today
       });
     }
 
@@ -950,9 +946,9 @@ export const salesQtyReport: ControllerFn = async (req, res, _next) => {
 
     const formattedData = sells.map(({ quantity, createdAt }, i) => {
       return {
-        x: moment(createdAt).format("DD-MM-YY"),
+        x: moment(createdAt).format('DD-MM-YY'),
         y: Number(quantity),
-        id: i,
+        id: i
       };
     });
 
@@ -971,33 +967,33 @@ export const salesAmountReport: ControllerFn = async (req, res, _next) => {
     if (req.showroomId) {
       qb = dataSource
         .getRepository(Showroom)
-        .createQueryBuilder("showroom")
-        .leftJoinAndSelect("showroom.invoices", "invoice")
+        .createQueryBuilder('showroom')
+        .leftJoinAndSelect('showroom.invoices', 'invoice')
         .select(
-          "SUM(invoice.invoiceAmount) as amount,Date(invoice.createdAt) as createdAt"
+          'SUM(invoice.invoiceAmount) as amount,Date(invoice.createdAt) as createdAt'
         )
-        .where("showroom.id=:id", { id: req.showroomId })
-        .orderBy("createdAt")
-        .groupBy("Date(invoice.createdAt)");
+        .where('showroom.id=:id', { id: req.showroomId })
+        .orderBy('createdAt')
+        .groupBy('Date(invoice.createdAt)');
     } else {
       qb = dataSource
         .getRepository(Invoice)
-        .createQueryBuilder("invoice")
+        .createQueryBuilder('invoice')
         .select(
-          "SUM(invoice.invoiceAmount) as amount,Date(invoice.createdAt) as createdAt"
+          'SUM(invoice.invoiceAmount) as amount,Date(invoice.createdAt) as createdAt'
         )
-        .orderBy("createdAt")
-        .groupBy("Date(invoice.createdAt)");
+        .orderBy('createdAt')
+        .groupBy('Date(invoice.createdAt)');
     }
 
     if (to_date && from_date) {
-      qb.where("Date(invoice.createdAt) >= :from_date", {
-        from_date,
-      }).andWhere("Date(invoice.createdAt) <= :to_date", { to_date });
+      qb.where('Date(invoice.createdAt) >= :from_date', {
+        from_date
+      }).andWhere('Date(invoice.createdAt) <= :to_date', { to_date });
     }
     if (today) {
-      qb.where("Date(invoice.createdAt) = :today", {
-        today,
+      qb.where('Date(invoice.createdAt) = :today', {
+        today
       });
     }
 
@@ -1005,10 +1001,10 @@ export const salesAmountReport: ControllerFn = async (req, res, _next) => {
       await qb.getRawMany();
     const formattedData = sells.map(({ amount, createdAt, showroom }, i) => {
       return {
-        x: moment(createdAt).format("DD-MM-YY"),
+        x: moment(createdAt).format('DD-MM-YY'),
         y: Number(amount),
         id: i,
-        showroom,
+        showroom
       };
     });
     res.status(200).json(formattedData);
