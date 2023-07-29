@@ -162,7 +162,7 @@ export default class ReportController {
         .leftJoinAndSelect('invoice.products', 'products')
         .leftJoinAndSelect('invoice.paymentMethod', 'paymentMethod')
         .where(
-          'invoice.createdAt >= :start_date AND invoice.createdAt <= :end_date',
+          'DATE(invoice.createdAt) >= :start_date AND DATE(invoice.createdAt) <= :end_date',
           { start_date: startOfMonth, end_date: endOfMonth }
         )
         .andWhere('invoice.showroom = :showroom', {
@@ -192,7 +192,7 @@ export default class ReportController {
         const currentMonth = createdAt.format('MMMM');
         const currentYear = createdAt.format('YYYY');
 
-        const productQuantity = iv.products.length;
+        const productQuantity = iv.products.length - iv.returnQuantity;
 
         if (dailySales.has(currentDate)) {
           const salesItem = dailySales.get(currentDate);
@@ -523,8 +523,6 @@ export default class ReportController {
         .andWhere('showroom.showroomCode=:showroomCode', { showroomCode })
         .groupBy('customer.id')
         .getRawMany();
-
-      console.log(moment().year());
 
       const newData = data.map(
         async ({

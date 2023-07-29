@@ -9,7 +9,7 @@ import { getCustomer } from '../utils/customer';
 import { customerRepository, showroomRepository } from '../utils';
 
 export const getCustomers: ControllerFn = async (req, res, _next) => {
-  let customers;
+  let customers: Customer[];
   if (req.showroomId) {
     customers = await dataSource
       .getRepository(Customer)
@@ -40,7 +40,6 @@ export const createCustomer: ControllerFn = async (req, res, next) => {
         new ErrorHandler('Customer Name and Phone are required', 400)
       );
     }
-    const isExist = await getCustomer({ customerPhone });
 
     let showroom: Showroom | null;
 
@@ -53,7 +52,12 @@ export const createCustomer: ControllerFn = async (req, res, next) => {
     if (!showroom) {
       return next(new ErrorHandler('Showroom not found', 400));
     }
-    if (isExist?.showroom.id === showroom.id) {
+
+    if (
+      showroom.customer.findIndex(customer => {
+        return customer.customerPhone === customerPhone;
+      }) !== -1
+    ) {
       return next(
         new ErrorHandler(
           'Customer with this Phone already exists in this showroom',
@@ -71,7 +75,7 @@ export const createCustomer: ControllerFn = async (req, res, next) => {
     customer.customerAddress = req.body?.customerAddress;
 
     // Adding Customer to showroom
-    showroom.customer.push(customer);
+    showroom.addCustomer(customer);
     await showroomRepository.save(showroom);
     await customerRepository.save(customer);
 

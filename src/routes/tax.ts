@@ -1,7 +1,9 @@
-import express from "express";
-import { createTax, getTax } from "../controller/tax";
+import express from 'express';
+import { createTax, deleteTax, getTax } from '../controller/tax';
 
 export const taxRoutes = express.Router();
-taxRoutes.route("/").get(getTax).post(createTax);
+taxRoutes.route('/').get(getTax).post(createTax);
+
+taxRoutes.delete('/:id', deleteTax);
 
 export default taxRoutes;

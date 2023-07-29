@@ -1,13 +1,17 @@
-import express from "express";
+import express from 'express';
 import {
   createEmp,
   deleteEmployee,
   getEmployee,
-  updateEmployee,
-} from "../controller/employee";
+  updateEmployee
+} from '../controller/employee';
+import { isManagerOrAdmin } from '../middleware/isAuth';
 
 export const employeeRoutes = express.Router();
 
-employeeRoutes.route("/").get(getEmployee).post(createEmp);
-employeeRoutes.route("/:id").patch(updateEmployee).delete(deleteEmployee);
+employeeRoutes.route('/').get(getEmployee).post(isManagerOrAdmin, createEmp);
+employeeRoutes
+  .route('/:id')
+  .patch(isManagerOrAdmin, updateEmployee)
+  .delete(isManagerOrAdmin, deleteEmployee);
 export default employeeRoutes;

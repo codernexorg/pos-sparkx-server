@@ -344,6 +344,7 @@ export const importProduct = async (
       unitTotalCost: product.unitCost,
       deliveryDate: new Date(product?.deliveryDate),
       sellPrice: product.sellPrice,
+      sellPriceAfterDiscount:product.sellPriceAfterDiscount||product.sellPrice,
       updatedAt: new Date(product?.updatedAt),
       challanNumber: product?.challanNumber,
       invoiceNumber: product?.invoiceNumber,
