@@ -5,13 +5,13 @@ import {
   Entity,
   OneToMany,
   PrimaryGeneratedColumn,
-  UpdateDateColumn,
-} from "typeorm";
-import Expenses from "./expenses";
-import Customer from "./customer";
-import Invoice from "./invoice";
-import Employee from "./employee";
-import Purchase from "./purchase";
+  UpdateDateColumn
+} from 'typeorm';
+import Expenses from './expenses';
+import Customer from './customer';
+import Invoice from './invoice';
+import Employee from './employee';
+import Purchase from './purchase';
 
 @Entity()
 export default class Showroom extends BaseEntity {
@@ -29,31 +29,31 @@ export default class Showroom extends BaseEntity {
   @Column()
   showroomAddress: string;
 
-  @OneToMany(() => Expenses, (ex) => ex.showroom, {
+  @OneToMany(() => Expenses, ex => ex.showroom, {
     cascade: true,
-    eager: true,
+    eager: true
   })
   expenses: Expenses[];
 
-  @OneToMany(() => Customer, (cm) => cm.showroom, {
+  @OneToMany(() => Customer, cm => cm.showroom, {
     cascade: true,
-    eager: true,
+    eager: true
   })
   customer: Customer[];
 
-  @OneToMany(() => Invoice, (invoice) => invoice.showroom, {
+  @OneToMany(() => Invoice, invoice => invoice.showroom, {
     eager: true,
-    cascade: true,
+    cascade: true
   })
   invoices: Invoice[];
 
-  @OneToMany(() => Employee, (emp) => emp.showroom, {
+  @OneToMany(() => Employee, emp => emp.showroom, {
     eager: true,
-    cascade: true,
+    cascade: true
   })
   employees: Employee[];
 
-  @OneToMany(() => Purchase, (p) => p.showroom, { cascade: true, eager: true })
+  @OneToMany(() => Purchase, p => p.showroom, { cascade: true, eager: true })
   purchases: Purchase[];
 
   @CreateDateColumn()
@@ -61,4 +61,11 @@ export default class Showroom extends BaseEntity {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  addCustomer(customer: Customer) {
+    if (this.customer == null) {
+      this.customer = new Array<Customer>();
+    }
+    this.customer.push(customer);
+  }
 }

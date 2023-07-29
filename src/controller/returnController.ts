@@ -14,16 +14,25 @@ import Employee from '../entities/employee';
 
 export const createReturnProduct: ControllerFn = async (req, res, next) => {
   try {
-    const { check, customerPhone, exchange, items, cash, bkash, cbl } =
-      req.body as {
-        customerPhone: string;
-        check: string;
-        exchange: string;
-        items: string[];
-        cash: number;
-        bkash: number;
-        cbl: number;
-      };
+    const {
+      check,
+      customerPhone,
+      exchange,
+      items,
+      cash,
+      bkash,
+      cbl,
+      returnDate
+    } = req.body as {
+      customerPhone: string;
+      check: string;
+      exchange: string;
+      items: string[];
+      cash: number;
+      bkash: number;
+      cbl: number;
+      returnDate: string;
+    };
     // Finding The Showroom For Sells
 
     if (!check) {
@@ -90,26 +99,34 @@ export const createReturnProduct: ControllerFn = async (req, res, next) => {
     for (const product of products) {
       product.sellingStatus = ProductStatus.Unsold;
       product.returnStatus = true;
+
       if (customer) {
         customer.returnPurchase(product);
+        await customer.save();
       }
       returnProduct.addProduct(product);
-      const employee = await appDataSource
-        .getRepository(Employee)
-        .createQueryBuilder('emp')
-        .leftJoinAndSelect('emp.sales', 'sales')
-        .leftJoinAndSelect('emp.returnSales', 'returnSales')
-        .where('emp.id=:id', { id: product.employee.id })
-        .getOne();
+      const employee = await Employee.findOne({
+        where: {
+          id: product.employee.id
+        },
+        relations: {
+          returnSales: true,
+          sales: true
+        }
+      });
 
-      if (employee) {
+      if (employee && employee.id) {
         employee.returnSale(product);
+        await employee.save();
       }
 
-      await Promise.all([customer?.save(), employee?.save(), product.save()]);
+      await product.save();
     }
 
-    const amount: number = cash + bkash + cbl;
+    const amount: number = products.reduce(
+      (a, b) => a + b.sellPriceAfterDiscount,
+      0
+    );
 
     returnProduct.check = check;
     returnProduct.customerPhone = customer?.customerPhone;
@@ -117,6 +134,9 @@ export const createReturnProduct: ControllerFn = async (req, res, next) => {
     returnProduct.bkash = bkash;
     returnProduct.cbl = cbl;
     returnProduct.cash = cash;
+    returnProduct.createdAt = returnDate
+      ? new Date(returnDate)
+      : new Date(Date.now());
 
     if (exchange === 'Exchanging') {
       returnProduct.exchange = true;
@@ -144,7 +164,12 @@ export const createReturnProduct: ControllerFn = async (req, res, next) => {
       invoice.showroomAddress = showroom.showroomAddress;
       invoice.showroomMobile = showroom.showroomMobile;
       invoice.showroomName = showroom.showroomName;
+      invoice.returnQuantity = returnProduct.returnProducts.length;
       showroom.invoices.push(invoice);
+
+      invoice.createdAt = returnDate
+        ? new Date(returnDate)
+        : new Date(Date.now());
 
       await paymentMethod.save();
 
