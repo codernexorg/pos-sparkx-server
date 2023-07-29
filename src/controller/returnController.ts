@@ -14,16 +14,25 @@ import Employee from '../entities/employee';
 
 export const createReturnProduct: ControllerFn = async (req, res, next) => {
   try {
-    const { check, customerPhone, exchange, items, cash, bkash, cbl } =
-      req.body as {
-        customerPhone: string;
-        check: string;
-        exchange: string;
-        items: string[];
-        cash: number;
-        bkash: number;
-        cbl: number;
-      };
+    const {
+      check,
+      customerPhone,
+      exchange,
+      items,
+      cash,
+      bkash,
+      cbl,
+      returnDate
+    } = req.body as {
+      customerPhone: string;
+      check: string;
+      exchange: string;
+      items: string[];
+      cash: number;
+      bkash: number;
+      cbl: number;
+      returnDate: string;
+    };
     // Finding The Showroom For Sells
 
     if (!check) {
@@ -106,13 +115,6 @@ export const createReturnProduct: ControllerFn = async (req, res, next) => {
         }
       });
 
-      console.log(employee);
-
-      console.log(
-        '🚀 ~ file: returnController.ts:106 ~ constcreateReturnProduct:ControllerFn= ~ employee:',
-        employee
-      );
-
       if (employee && employee.id) {
         employee.returnSale(product);
         await employee.save();
@@ -121,7 +123,10 @@ export const createReturnProduct: ControllerFn = async (req, res, next) => {
       await product.save();
     }
 
-    const amount: number = cash + bkash + cbl;
+    const amount: number = products.reduce(
+      (a, b) => a + b.sellPriceAfterDiscount,
+      0
+    );
 
     returnProduct.check = check;
     returnProduct.customerPhone = customer?.customerPhone;
@@ -129,6 +134,9 @@ export const createReturnProduct: ControllerFn = async (req, res, next) => {
     returnProduct.bkash = bkash;
     returnProduct.cbl = cbl;
     returnProduct.cash = cash;
+    returnProduct.createdAt = returnDate
+      ? new Date(returnDate)
+      : new Date(Date.now());
 
     if (exchange === 'Exchanging') {
       returnProduct.exchange = true;
@@ -156,7 +164,12 @@ export const createReturnProduct: ControllerFn = async (req, res, next) => {
       invoice.showroomAddress = showroom.showroomAddress;
       invoice.showroomMobile = showroom.showroomMobile;
       invoice.showroomName = showroom.showroomName;
+      invoice.returnQuantity = returnProduct.returnProducts.length;
       showroom.invoices.push(invoice);
+
+      invoice.createdAt = returnDate
+        ? new Date(returnDate)
+        : new Date(Date.now());
 
       await paymentMethod.save();
 

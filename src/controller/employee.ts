@@ -1,16 +1,16 @@
-import { ControllerFn } from "../types";
+import { ControllerFn } from '../types';
 
-import ErrorHandler from "../utils/errorHandler";
-import Employee from "../entities/employee";
-import Showroom from "../entities/showroom";
-import dataSource from "../typeorm.config";
+import ErrorHandler from '../utils/errorHandler';
+import Employee from '../entities/employee';
+import Showroom from '../entities/showroom';
+import dataSource from '../typeorm.config';
 
 export const createEmp: ControllerFn = async (req, res, next) => {
   try {
     const { empName, designation, empPhone, showroomCode } = req.body;
 
     if (!empName || !designation || !empPhone) {
-      return next(new ErrorHandler("Please Provide required Information", 400));
+      return next(new ErrorHandler('Please Provide required Information', 400));
     }
     let showroom: Showroom | null;
 
@@ -18,18 +18,18 @@ export const createEmp: ControllerFn = async (req, res, next) => {
       showroom = await Showroom.findOne({ where: { id: req.showroomId } });
     } else {
       showroom = await Showroom.findOne({
-        where: { showroomCode: showroomCode },
+        where: { showroomCode: showroomCode }
       });
     }
 
     if (!showroom) {
-      return next(new ErrorHandler("Showroom Not Found", 400));
+      return next(new ErrorHandler('Showroom Not Found', 400));
     }
 
     const isExist = await Employee.findOne({ where: { empPhone } });
 
     if (isExist) {
-      return next(new ErrorHandler("Employee Already Exists", 400));
+      return next(new ErrorHandler('Employee Already Exists', 400));
     }
 
     const employee = new Employee();
@@ -60,27 +60,27 @@ export const getEmployee: ControllerFn = async (req, res, _next) => {
   if (req.showroomId) {
     employee = await dataSource
       .getRepository(Employee)
-      .createQueryBuilder("employee")
-      .leftJoinAndSelect("employee.showroom", "showroom")
-      .leftJoinAndSelect("employee.sales", "sales")
-      .leftJoinAndSelect("employee.returnSales", "returnSales")
-      .where("showroom.id=:id", { id: req.showroomId })
+      .createQueryBuilder('employee')
+      .leftJoinAndSelect('employee.showroom', 'showroom')
+      .leftJoinAndSelect('employee.sales', 'sales')
+      .leftJoinAndSelect('employee.returnSales', 'returnSales')
+      .where('showroom.id=:id', { id: req.showroomId })
       .getMany();
   } else {
     employee = await dataSource
       .getRepository(Employee)
-      .createQueryBuilder("employee")
-      .leftJoinAndSelect("employee.sales", "sales")
-      .leftJoinAndSelect("employee.returnSales", "returnSales")
-      .leftJoinAndSelect("employee.showroom", "showroom")
+      .createQueryBuilder('employee')
+      .leftJoinAndSelect('employee.sales', 'sales')
+      .leftJoinAndSelect('employee.returnSales', 'returnSales')
+      .leftJoinAndSelect('employee.showroom', 'showroom')
       .getMany();
   }
 
   const empUpdated = employee.map(({ sales, returnSales, ...emp }) => {
-    const filteredSales = sales.filter((sale) => {
+    const filteredSales = sales.filter(sale => {
       // return true if the sale's product is not included in the returnSales array
       return !returnSales.some(
-        (returnSale) => returnSale.itemCode === sale.itemCode
+        returnSale => returnSale.itemCode === sale.itemCode
       );
     });
 
@@ -97,8 +97,9 @@ export const updateEmployee: ControllerFn = async (req, res, _next) => {
     const employee = await Employee.findOne({ where: { id: id } });
 
     if (!employee) {
-      return _next(new ErrorHandler("Employee Does not Exists", 404));
+      return _next(new ErrorHandler('Employee Does not Exists', 404));
     }
+
     Object.assign(employee, req.body);
 
     await employee.save();
@@ -115,7 +116,7 @@ export const deleteEmployee: ControllerFn = async (req, res, _next) => {
     const employee = await Employee.findOne({ where: { id: id } });
 
     if (!employee) {
-      return _next(new ErrorHandler("Employee Does not Exists", 404));
+      return _next(new ErrorHandler('Employee Does not Exists', 404));
     }
 
     await employee.remove();

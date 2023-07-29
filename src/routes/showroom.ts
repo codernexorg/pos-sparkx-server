@@ -1,14 +1,18 @@
-import express from "express";
+import express from 'express';
 import {
   createShowroom,
   deleteShowroom,
   getShowroom,
-  updateShowroom,
-} from "../controller/shoroom";
+  updateShowroom
+} from '../controller/shoroom';
+import { isManagerOrAdmin, isSuperAdmin } from '../middleware/isAuth';
 
 export const showroomRoutes = express.Router();
 
-showroomRoutes.route("/").post(createShowroom).get(getShowroom);
-showroomRoutes.route("/:id").patch(updateShowroom).delete(deleteShowroom);
+showroomRoutes.route('/').post(isSuperAdmin, createShowroom).get(getShowroom);
+showroomRoutes
+  .route('/:id')
+  .patch(isManagerOrAdmin, updateShowroom)
+  .delete(isManagerOrAdmin, deleteShowroom);
 
 export default showroomRoutes;

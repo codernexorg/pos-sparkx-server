@@ -195,9 +195,18 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
     invoice.customerName = customer.customerName;
     invoice.customerMobile = customer.customerPhone;
     invoice.quantity = products.length;
-    invoice.cash = cash;
-    invoice.cbl = cbl;
-    invoice.bkash = bkash;
+    invoice.cash =
+      paymentMethod !== 'MULTIPLE' && paymentMethod === 'CASH'
+        ? cash - invoice.changeAmount
+        : cash;
+    invoice.cbl =
+      paymentMethod !== 'MULTIPLE' && paymentMethod === 'CBL'
+        ? cbl - invoice.changeAmount
+        : cbl;
+    invoice.bkash =
+      paymentMethod !== 'MULTIPLE' && paymentMethod === 'BKASH'
+        ? bkash - invoice.changeAmount
+        : bkash;
     invoice.vat = vat;
 
     if (returnId) {
@@ -215,6 +224,7 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
       invoice.bkash -= returned.bkash;
       invoice.cash -= returned.cash;
       invoice.cbl -= returned.cbl;
+      invoice.returnQuantity = returned.returnProducts.length;
 
       invoice.returned = returned;
     }
@@ -222,6 +232,8 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
     // Sells Time Manual
     if (salesTime) {
       invoice.createdAt = new Date(salesTime);
+    } else {
+      invoice.createdAt = new Date(Date.now());
     }
 
     //Updating invoice & Pushing into showroom
@@ -242,7 +254,7 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
       products.every(async product => {
         customer.addPurchase(product);
       });
-      customer.paid = Math.round(customer.paid + invoice.paidAmount);
+      customer.paid = Math.round(customer.paid + withTax);
       customer.crm = employee.empPhone;
       await customer.save();
     }
