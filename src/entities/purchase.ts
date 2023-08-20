@@ -47,10 +47,7 @@ export default class Purchase extends BaseEntity {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @ManyToOne(() => Showroom, (sr) => sr.purchases, {
-    onDelete: "SET NULL",
-    onUpdate: "CASCADE",
-  })
+  @ManyToMany(() => Showroom, (sr) => sr.purchases)
   showroom: Showroom;
 
   addPurchase(product: Product) {
