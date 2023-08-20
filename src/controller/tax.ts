@@ -1,11 +1,12 @@
-import { ControllerFn } from '../types';
-import ErrorHandler from '../utils/errorHandler';
-import Tax from '../entities/tax';
-import appDataSource from '../typeorm.config';
+import { ControllerFn } from "../types";
+import ErrorHandler from "../utils/errorHandler";
+import Tax from "../entities/tax";
+import appDataSource from "../typeorm.config";
+import Business from "../entities/business";
 
 export const createTax: ControllerFn = async (req, res, next) => {
   if (!req.body?.taxName) {
-    return next(new ErrorHandler('Tax & Tax Name Required', 404));
+    return next(new ErrorHandler("Tax & Tax Name Required", 404));
   }
   const tax = new Tax();
 
@@ -25,18 +26,24 @@ export const deleteTax: ControllerFn = async (_req, res, _next) => {
   const { id } = _req.params;
 
   if (!id) {
-    return _next(new ErrorHandler('Tax id not found', 404));
+    return _next(new ErrorHandler("Tax id not found", 404));
   }
 
   const existingTax = await appDataSource.getRepository(Tax).findOne({
     where: {
-      id
-    }
+      id,
+    },
   });
 
   if (!existingTax) {
-    return _next(new ErrorHandler('Tax not found with corresponding id', 404));
+    return _next(new ErrorHandler("Tax not found with corresponding id", 404));
   }
+
+  const business = await appDataSource.getRepository(Business).find();
+
+  business[0].defaultTax = 0;
+
+  await business[0].save();
 
   await existingTax.remove();
 

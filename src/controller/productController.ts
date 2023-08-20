@@ -37,6 +37,9 @@ export const createProductGroup: ControllerFn = async (req, res, next) => {
 };
 
 export const createSingleProduct: ControllerFn = async (req, res, next) => {
+  const queryRunner = appDataSource.createQueryRunner();
+  const manager = queryRunner.manager;
+
   try {
     const {
       itemCode,
@@ -44,10 +47,10 @@ export const createSingleProduct: ControllerFn = async (req, res, next) => {
       invoiceNumber,
       unitCost,
       sellPrice,
-      lotNumber,
       totalItem,
       invoiceTotalPrice,
       supplierName,
+      invoiceDate,
     } = req.body as Product;
 
     const requiredFields = [
@@ -56,104 +59,79 @@ export const createSingleProduct: ControllerFn = async (req, res, next) => {
       invoiceNumber,
       unitCost,
       sellPrice,
-      lotNumber,
       totalItem,
       supplierName,
     ];
+
     if (requiredFields.some((field) => !field)) {
-      return next(new ErrorHandler("Please Enter Required Information", 404));
+      return next(new ErrorHandler("Please Enter Required Information", 400));
     }
 
-    const productCode = await ProductGroup.findOne({
+    const productCode = await manager.findOne(ProductGroup, {
       where: {
         productName: productGroup,
       },
     });
 
-    const showroom =
-      (await dataSource
-        .getRepository(Showroom)
-        .createQueryBuilder("showroom")
-        .leftJoinAndSelect("showroom.purchases", "purchase")
-        .where("showroom.id=:id", { id: req.showroomId })
-        .getOne()) ||
-      (await dataSource
-        .getRepository(Showroom)
-        .createQueryBuilder("showroom")
-        .leftJoinAndSelect("showroom.purchases", "purchase")
-        .where('showroom.showroomCode="HO"')
-        .getOne());
+    const showroom = (await manager.findOne(Showroom, {
+      where: req.showroomId ? { id: req.showroomId } : { showroomCode: "HO" },
+      relations: {
+        purchases: true,
+      },
+    })) as Showroom;
 
-    if (totalItem > 1) {
-      let itemMCode = parseInt(itemCode);
-      const productArr: Product[] = [];
-      for (let i = 0; i < totalItem; i++) {
-        productArr.push({
-          ...req.body,
-          itemCode: String(itemMCode.toString().padStart(10, "0")),
-          productCode: String(productCode?.productCode),
-          grossProfit: (sellPrice - +unitCost).toFixed(2),
-          grossMargin: (((sellPrice - unitCost) / sellPrice) * 100).toFixed(2),
-          unitTotalCost: Number(unitCost),
-          sellingStatus: ProductStatus.Unsold,
-        });
-        itemMCode += 1;
-      }
+    await queryRunner.startTransaction();
 
-      const purchase = new Purchase();
-      await Promise.all(
-        productArr.map(async (product) => {
-          const productToSave = Product.create({
-            ...product,
-            invoiceDate: new Date(req.body?.invoiceDate),
-          });
-          purchase.addPurchase(product);
-          await productToSave.save();
-        })
+    // Create Purchase
+    const purchase = manager.create(Purchase);
+    purchase.quantity = totalItem;
+    purchase.invoiceNo = invoiceNumber;
+    purchase.supplierName = supplierName;
+    purchase.purchaseAmount = invoiceTotalPrice;
+
+    showroom.purchases.push(purchase);
+    await Promise.all([manager.save(purchase), manager.save(showroom)]);
+
+    const productArr: Product[] = [];
+
+    for (let i = 0; i < totalItem; i++) {
+      const itemMCode = parseInt(itemCode) + i;
+      const grossProfit = (sellPrice - unitCost).toFixed(2);
+      const grossMargin = (((sellPrice - unitCost) / sellPrice) * 100).toFixed(
+        2
       );
 
-      purchase.quantity = productArr.length;
-
-      purchase.invoiceNo = invoiceNumber;
-      purchase.supplierName = req.body?.supplierName;
-      purchase.purchaseAmount = invoiceTotalPrice;
-      showroom?.purchases.push(purchase);
-      await Promise.all([purchase.save(), showroom?.save()]);
-      return res.json(productArr);
-    } else {
-      const productToSave = Product.create({
+      const product = {
         ...req.body,
-        invoiceDate: moment(req.body?.invoiceDate).toDate(),
-        productCode: productCode?.productCode,
+        itemCode: itemMCode.toString().padStart(10, "0"),
+        productCode: String(productCode?.productCode),
+        grossProfit,
+        grossMargin,
         unitTotalCost: Number(unitCost),
         sellingStatus: ProductStatus.Unsold,
-        grossProfit: (sellPrice - +unitCost).toFixed(2),
-        grossMargin: (((sellPrice - unitCost) / sellPrice) * 100).toFixed(2),
-      });
+        invoiceDate: new Date(invoiceDate),
+      };
 
-      await productToSave.save();
-
-      const purchase = new Purchase();
-      purchase.addPurchase(productToSave);
-      purchase.invoiceNo = invoiceNumber;
-      purchase.quantity = 1;
-      purchase.supplierName = req.body?.supplierName;
-      purchase.purchaseAmount = invoiceTotalPrice;
-
-      showroom?.purchases.push(purchase);
-      await Promise.all([purchase.save(), showroom?.save()]);
-
-      return res.json([productToSave]);
+      productArr.push(product);
     }
+
+    await Promise.all(
+      productArr.map(async (product) => await manager.save(Product, product))
+    );
+
+    // Commit Transaction
+    await queryRunner.commitTransaction();
+
+    return res.json(productArr);
   } catch (e) {
-    console.log(e);
+    await queryRunner.rollbackTransaction();
     res.status(500).json({ message: e.message });
+  } finally {
+    await queryRunner.release();
   }
 };
 
 export const getProducts: ControllerFn = async (req, res, next) => {
-  res.set("Access-Control-Allow-Headers", "Content-Type");
-  res.set("Access-Control-Allow-Methods", "GET");
   const { showroomId } = req;
   const productRepository = dataSource.getRepository(Product);
   type ProductResponse = {
@@ -344,7 +322,8 @@ export const importProduct = async (
       unitTotalCost: product.unitCost,
       deliveryDate: new Date(product?.deliveryDate),
       sellPrice: product.sellPrice,
-      sellPriceAfterDiscount:product.sellPriceAfterDiscount||product.sellPrice,
+      sellPriceAfterDiscount:
+        product.sellPriceAfterDiscount || product.sellPrice,
       updatedAt: new Date(product?.updatedAt),
       challanNumber: product?.challanNumber,
       invoiceNumber: product?.invoiceNumber,
