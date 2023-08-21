@@ -107,15 +107,13 @@ export const createReturnProduct: ControllerFn = async (req, res, next) => {
         await customer.save();
       }
       returnProduct.addProduct(product);
-      const employee = await Employee.findOne({
-        where: {
-          id: product.employee.id,
-        },
-        relations: {
-          returnSales: true,
-          sales: true,
-        },
-      });
+      const employee = await appDataSource
+        .getRepository(Employee)
+        .createQueryBuilder("e")
+        .leftJoinAndSelect("e.sales", "sales")
+        .leftJoinAndSelect("e.returnSales", "returnSales")
+        .where("e.id=:id", { id: product.employee?.id })
+        .getOne();
 
       if (employee) {
         employee.returnSale(product);
@@ -229,8 +227,8 @@ export const getReturnReport: ControllerFn = async (req, res, next) => {
           finalPrice: iv?.returned?.returnProducts.map(
             (p) => p.sellPriceAfterDiscount
           ),
-          seller: iv?.returned?.returnProducts.map((p: any) => {
-            return p.employee[0];
+          seller: iv?.returned?.returnProducts.map((p) => {
+            return p.employee;
           }),
           products: iv?.returned?.returnProducts.map((p) => ({
             itemCode: p.itemCode,

@@ -170,7 +170,7 @@ export default class ReportController {
         })
         .getMany();
 
-      interface DailySalesReponse {
+      interface DailySalesResponse {
         date: string;
         total: number;
         quantity: number;
@@ -184,7 +184,7 @@ export default class ReportController {
         gapAmount: number;
       }
 
-      const dailySales: Map<string, DailySalesReponse> = new Map();
+      const dailySales: Map<string, DailySalesResponse> = new Map();
 
       rawSales.forEach((iv) => {
         const createdAt = moment(iv.createdAt);
@@ -194,60 +194,44 @@ export default class ReportController {
 
         const productQuantity = iv.products.length - iv.returnQuantity;
 
+        const taglessTotal = iv.products.reduce((sum, p) => {
+          if (p.tagless) {
+            return sum + p.sellPriceAfterDiscount;
+          }
+          return 0;
+        }, 0);
+        const withOutTaglessTotal = iv.products.reduce((sum, p) => {
+          if (!p.tagless) {
+            return sum + p.sellPriceAfterDiscount;
+          }
+          return 0;
+        }, 0);
+
+        const bkashAmount = iv.bkash;
+        const cblAmount = iv.cbl;
+        const cashAmount = iv.cash;
+        const gapAmount = iv.invoiceAmount - (iv.bkash + iv.cbl + iv.cash);
+
         if (dailySales.has(currentDate)) {
-          const salesItem = dailySales.get(currentDate);
-          salesItem!.total += iv.invoiceAmount;
-          salesItem!.quantity += productQuantity;
-          salesItem!.taglessTotal += iv.products.reduce((sum, p) => {
-            if (p.tagless && p.sellingStatus === ProductStatus.Sold) {
-              return sum + p.sellPriceAfterDiscount;
-            }
-            return sum;
-          }, 0);
+          const salesItem = dailySales.get(currentDate)!;
 
-          salesItem!.withOutTaglessTotal += iv.products.reduce((sum, p) => {
-            if (!p.tagless && p.sellingStatus === ProductStatus.Sold) {
-              return sum + p.sellPriceAfterDiscount;
-            }
-            return sum;
-          }, 0);
-
-          salesItem!.bkashAmount += iv.bkash;
-          salesItem!.cashAmount += iv.cash;
-          salesItem!.cblAmount += iv.cbl;
-          salesItem!.gapAmount =
-            salesItem!.total -
-            (salesItem!.cashAmount +
-              salesItem!.bkashAmount +
-              salesItem!.cblAmount);
+          salesItem.total += iv.invoiceAmount;
+          salesItem.quantity += productQuantity;
+          salesItem.taglessTotal += taglessTotal;
+          salesItem.withOutTaglessTotal += withOutTaglessTotal;
+          salesItem.bkashAmount += bkashAmount;
+          salesItem.cashAmount += cashAmount;
+          salesItem.cblAmount += cblAmount;
+          salesItem.gapAmount += gapAmount;
         } else {
-          const taglessTotal = iv.products.reduce((sum, p) => {
-            if (p.tagless && p.sellingStatus === ProductStatus.Sold) {
-              return sum + p.sellPriceAfterDiscount;
-            }
-            return sum;
-          }, 0);
-
-          const withOutTaglessTotal = iv.products.reduce((sum, p) => {
-            if (!p.tagless && p.sellingStatus === ProductStatus.Sold) {
-              return sum + p.sellPriceAfterDiscount;
-            }
-            return sum;
-          }, 0);
-
-          const bkashAmount = iv.bkash;
-          const cblAmount = iv.cbl;
-          const cashAmount = iv.cash;
-          const gapAmount = iv.invoiceAmount - (iv.bkash + iv.cbl + iv.cash);
-
           dailySales.set(currentDate, {
             date: currentDate,
             month: currentMonth,
+            year: currentYear,
             quantity: productQuantity,
             total: iv.invoiceAmount,
             taglessTotal,
             withOutTaglessTotal,
-            year: currentYear,
             bkashAmount,
             cblAmount,
             cashAmount,
@@ -256,7 +240,7 @@ export default class ReportController {
         }
       });
       // Convert the Map values to an array of DailySalesReponse
-      const optimizedDailySales: DailySalesReponse[] = Array.from(
+      const optimizedDailySales: DailySalesResponse[] = Array.from(
         dailySales.values()
       );
 

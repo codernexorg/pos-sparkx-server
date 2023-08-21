@@ -126,7 +126,10 @@ export default class Product extends BaseEntity {
   @ManyToMany(() => Customer, (customer) => customer.purchasedProducts)
   purchasedCustomer: Customer;
 
-  @ManyToMany(() => Employee, (emp) => emp.sales)
+  @ManyToOne(() => Employee, (emp) => emp.sales, {
+    onUpdate: "CASCADE",
+    onDelete: "NO ACTION",
+  })
   employee: Employee;
 
   @ManyToMany(() => Employee, (emp) => emp.returnSales)

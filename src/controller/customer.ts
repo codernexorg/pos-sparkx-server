@@ -1,31 +1,31 @@
-import xlsx from 'xlsx';
-import Customer from '../entities/customer';
-import Showroom from '../entities/showroom';
-import { ControllerFn } from '../types';
-import ErrorHandler from '../utils/errorHandler';
-import dataSource from '../typeorm.config';
-import { getShowroom } from '../utils/showroom';
-import { getCustomer } from '../utils/customer';
-import { customerRepository, showroomRepository } from '../utils';
+import xlsx from "xlsx";
+import Customer from "../entities/customer";
+import Showroom from "../entities/showroom";
+import { ControllerFn } from "../types";
+import ErrorHandler from "../utils/errorHandler";
+import dataSource from "../typeorm.config";
+import { getShowroom } from "../utils/showroom";
+import { getCustomer } from "../utils/customer";
+import { customerRepository, showroomRepository } from "../utils";
 
 export const getCustomers: ControllerFn = async (req, res, _next) => {
   let customers: Customer[];
   if (req.showroomId) {
     customers = await dataSource
       .getRepository(Customer)
-      .createQueryBuilder('customer')
-      .leftJoinAndSelect('customer.showroom', 'showroom')
-      .leftJoinAndSelect('customer.purchasedProducts', 'purchasedProducts')
-      .leftJoinAndSelect('customer.returnedProducts', 'returnedProducts')
-      .where('showroom.id=:id', { id: req.showroomId })
+      .createQueryBuilder("customer")
+      .leftJoinAndSelect("customer.showroom", "showroom")
+      .leftJoinAndSelect("customer.purchasedProducts", "purchasedProducts")
+      .leftJoinAndSelect("customer.returnedProducts", "returnedProducts")
+      .where("showroom.id=:id", { id: req.showroomId })
       .getMany();
   } else {
     customers = await dataSource
       .getRepository(Customer)
-      .createQueryBuilder('customer')
-      .leftJoinAndSelect('customer.purchasedProducts', 'purchasedProducts')
-      .leftJoinAndSelect('customer.showroom', 'showroom')
-      .leftJoinAndSelect('customer.returnedProducts', 'returnedProducts')
+      .createQueryBuilder("customer")
+      .leftJoinAndSelect("customer.purchasedProducts", "purchasedProducts")
+      .leftJoinAndSelect("customer.showroom", "showroom")
+      .leftJoinAndSelect("customer.returnedProducts", "returnedProducts")
       .getMany();
   }
 
@@ -37,7 +37,7 @@ export const createCustomer: ControllerFn = async (req, res, next) => {
 
     if (!customerName || !customerPhone) {
       return next(
-        new ErrorHandler('Customer Name and Phone are required', 400)
+        new ErrorHandler("Customer Name and Phone are required", 400)
       );
     }
 
@@ -50,17 +50,17 @@ export const createCustomer: ControllerFn = async (req, res, next) => {
     }
 
     if (!showroom) {
-      return next(new ErrorHandler('Showroom not found', 400));
+      return next(new ErrorHandler("Showroom not found", 400));
     }
 
     if (
-      showroom.customer.findIndex(customer => {
+      showroom.customer.findIndex((customer) => {
         return customer.customerPhone === customerPhone;
       }) !== -1
     ) {
       return next(
         new ErrorHandler(
-          'Customer with this Phone already exists in this showroom',
+          "Customer with this Phone already exists in this showroom",
           400
         )
       );
@@ -68,7 +68,7 @@ export const createCustomer: ControllerFn = async (req, res, next) => {
 
     //Creating Customer
 
-    const customer = new Customer();
+    const customer = customerRepository.create();
     customer.customerPhone = customerPhone;
     customer.customerName = customerName;
     customer.customerEmail = req.body?.customerEmail;
@@ -82,7 +82,7 @@ export const createCustomer: ControllerFn = async (req, res, next) => {
     res.status(201).json(customer);
   } catch (e) {
     console.log(
-      '🚀 ~ file: customer.ts:77 ~ constcreateCustomer:ControllerFn= ~ e:',
+      "🚀 ~ file: customer.ts:77 ~ constcreateCustomer:ControllerFn= ~ e:",
       e
     );
 
@@ -96,7 +96,7 @@ export const deleteCustomer: ControllerFn = async (req, res, next) => {
     const customer = await Customer.findOne({ where: { id } });
 
     if (!customer) {
-      return next(new ErrorHandler('Customer does not exist', 400));
+      return next(new ErrorHandler("Customer does not exist", 400));
     }
     await customer.remove();
 
@@ -113,7 +113,7 @@ export const updateCustomer: ControllerFn = async (req, res, next) => {
     const customer = await Customer.findOne({ where: { id } });
 
     if (!customer) {
-      return next(new ErrorHandler('Customer does not exist', 400));
+      return next(new ErrorHandler("Customer does not exist", 400));
     }
 
     Object.assign(customer, req.body);
@@ -130,9 +130,9 @@ export const importCustomers: ControllerFn = async (req, res, next) => {
   try {
     const file = req.file;
     if (!file) {
-      return next(new ErrorHandler('No File Found', 400));
+      return next(new ErrorHandler("No File Found", 400));
     }
-    const workbook = xlsx.read(file?.buffer, { type: 'buffer' });
+    const workbook = xlsx.read(file?.buffer, { type: "buffer" });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
 
     const data: any[] = xlsx.utils.sheet_to_json(sheet);
@@ -145,20 +145,20 @@ export const importCustomers: ControllerFn = async (req, res, next) => {
       };
       label: string;
     }[] = [
-      { key: 'customerName', label: 'Customer Name' },
-      { key: 'customerPhone', label: 'Customer Phone' },
-      { key: 'showroomCode', label: 'Showroom Code' }
+      { key: "customerName", label: "Customer Name" },
+      { key: "customerPhone", label: "Customer Phone" },
+      { key: "showroomCode", label: "Showroom Code" },
     ];
 
     for (const customer of data) {
       const missingFields = requiredFieldsCustomer.filter(
-        field => !customer[field.key]
+        (field) => !customer[field.key]
       );
 
       if (missingFields.length > 0) {
         const missingFieldsLabels = missingFields
-          .map(field => field.label)
-          .join(', ');
+          .map((field) => field.label)
+          .join(", ");
         return next(
           new ErrorHandler(
             `Customer is missing value(s) for ${missingFieldsLabels}`,
@@ -168,13 +168,13 @@ export const importCustomers: ControllerFn = async (req, res, next) => {
       }
     }
 
-    data.every(async items => {
+    data.every(async (items) => {
       const showroom = await dataSource
         .getRepository(Showroom)
-        .createQueryBuilder('showroom')
-        .leftJoinAndSelect('showroom.customer', 'customer')
-        .where('showroom.showroomCode=:showroomCode', {
-          showroomCode: items.showroomCode
+        .createQueryBuilder("showroom")
+        .leftJoinAndSelect("showroom.customer", "customer")
+        .where("showroom.showroomCode=:showroomCode", {
+          showroomCode: items.showroomCode,
         })
         .getOne();
 
@@ -196,7 +196,7 @@ export const importCustomers: ControllerFn = async (req, res, next) => {
       await customer.save();
     });
 
-    res.status(201).json({ message: 'Customer Imported Successfully' });
+    res.status(201).json({ message: "Customer Imported Successfully" });
   } catch (e) {
     res.status(500).json({ message: e.message });
   }
