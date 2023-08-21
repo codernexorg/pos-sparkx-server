@@ -8,12 +8,12 @@ import {
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
-  UpdateDateColumn
-} from 'typeorm';
-import { EmpDesignation } from '../types';
-import Salary from './salary';
-import Product from './product';
-import Showroom from './showroom';
+  UpdateDateColumn,
+} from "typeorm";
+import { EmpDesignation } from "../types";
+import Salary from "./salary";
+import Product from "./product";
+import Showroom from "./showroom";
 
 @Entity()
 export default class Employee extends BaseEntity {
@@ -26,7 +26,7 @@ export default class Employee extends BaseEntity {
   @Column()
   empPhone: string;
 
-  @Column({ enum: EmpDesignation, type: 'enum' })
+  @Column({ enum: EmpDesignation, type: "enum" })
   designation: EmpDesignation;
 
   @Column({ nullable: true })
@@ -38,14 +38,14 @@ export default class Employee extends BaseEntity {
   @Column({ nullable: true, default: 0 })
   empSalary: number;
 
-  @ManyToMany(() => Product, p => p.employee, {
-    eager: true
+  @OneToMany(() => Product, (p) => p.employee, {
+    eager: true,
+    cascade: true,
   })
-  @JoinTable()
   sales: Product[];
 
-  @ManyToMany(() => Product, p => p.returnedEmployee, {
-    eager: true
+  @ManyToMany(() => Product, (p) => p.returnedEmployee, {
+    eager: true,
   })
   @JoinTable()
   returnSales: Product[];
@@ -53,12 +53,12 @@ export default class Employee extends BaseEntity {
   @Column({ nullable: true })
   joiningDate: Date;
 
-  @OneToMany(() => Salary, sl => sl.employee, { cascade: true, eager: true })
+  @OneToMany(() => Salary, (sl) => sl.employee, { cascade: true, eager: true })
   salary: Salary[];
 
-  @ManyToOne(() => Showroom, sr => sr.employees, {
-    onDelete: 'SET NULL',
-    onUpdate: 'CASCADE'
+  @ManyToOne(() => Showroom, (sr) => sr.employees, {
+    onDelete: "SET NULL",
+    onUpdate: "CASCADE",
   })
   showroom: Showroom;
 
@@ -73,17 +73,15 @@ export default class Employee extends BaseEntity {
       this.sales = new Array<Product>();
     }
     this.sales.push(product);
-
-    await this.save({ reload: true, listeners: true, transaction: true });
   }
   returnSale(product: Product) {
     if (this.returnSales == null) {
       this.returnSales = new Array<Product>();
     }
-    const productPurchased = this.sales.find(p => p.id === product.id);
+    const productPurchased = this.sales.find((p) => p.id === product.id);
     console.log(productPurchased);
     if (productPurchased) {
-      this.sales = this.sales.filter(p => p.id !== product.id);
+      this.sales = this.sales.filter((p) => p.id !== product.id);
       this.returnSales.push(product);
     }
   }

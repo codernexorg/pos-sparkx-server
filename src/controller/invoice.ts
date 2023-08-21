@@ -5,6 +5,7 @@ import Invoice from "../entities/invoice";
 import Product from "../entities/product";
 import ReturnProduct from "../entities/returnProduct";
 import Showroom from "../entities/showroom";
+import appDataSource from "../typeorm.config";
 import dataSource from "../typeorm.config";
 import {
   ControllerFn,
@@ -15,6 +16,8 @@ import {
 import ErrorHandler from "../utils/errorHandler";
 
 export const createInvoice: ControllerFn = async (req, res, next) => {
+  const queryRunner = appDataSource.createQueryRunner();
+  const manager = queryRunner.manager;
   try {
     const {
       items,
@@ -81,9 +84,8 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
 
     // Finding The CRM For Customer
 
-    const employee = await dataSource
-      .getRepository(Employee)
-      .createQueryBuilder("emp")
+    const employee = await manager
+      .createQueryBuilder(Employee, "emp")
       .where("emp.empPhone=:crmPhone", { crmPhone })
       .leftJoinAndSelect("emp.sales", "sales")
       .getOne();
@@ -97,24 +99,21 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
     // Finding The Showroom For Sells
 
     const showroom =
-      (await dataSource
-        .getRepository(Showroom)
-        .createQueryBuilder("showroom")
+      (await manager
+        .createQueryBuilder(Showroom, "showroom")
         .leftJoinAndSelect("showroom.invoices", "invoices")
         .where("showroom.id=:id", { id: req.showroomId })
         .getOne()) ||
-      (await dataSource
-        .getRepository(Showroom)
-        .createQueryBuilder("showroom")
+      (await manager
+        .createQueryBuilder(Showroom, "showroom")
         .leftJoinAndSelect("showroom.invoices", "invoices")
         .where("showroom.showroomCode='HO'")
         .getOne());
 
     // Finding the customer
 
-    const customer = await dataSource
-      .getRepository(Customer)
-      .createQueryBuilder("customer")
+    const customer = await manager
+      .createQueryBuilder(Customer, "customer")
       .leftJoinAndSelect("customer.purchasedProducts", "purchasedProducts")
       .where("customer.customerPhone=:customerMobile", {
         customerMobile: customerPhone,
@@ -148,9 +147,8 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
       return next(new ErrorHandler("Please Pay Payable Amount", 404));
     }
 
-    const products = await dataSource
-      .getRepository(Product)
-      .createQueryBuilder("product")
+    const products = await manager
+      .createQueryBuilder(Product, "product")
       .where("product.itemCode IN (:...productCodes)", {
         productCodes: items.map((item) => item.itemCode),
       })
@@ -160,25 +158,40 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
       return next(new ErrorHandler("No unsold items found", 404));
     }
 
-    for (const [i, product] of products.entries()) {
-      const sellPriceAfterDiscount = Math.round(
-        Number(product.sellPrice - discountTk[i])
-      );
-      product.sellingStatus = ProductStatus.Sold;
-      product.discount = discounts[i];
-      product.sellPriceAfterDiscount = sellPriceAfterDiscount;
+    await queryRunner.startTransaction();
 
-      await product.save();
-    }
+    await Promise.all(
+      products.map(async (product, i) => {
+        const sellPriceAfterDiscount = Math.round(
+          Number(product.sellPrice - discountTk[i])
+        );
+        product.sellingStatus = ProductStatus.Sold;
+        product.discount = discounts[i];
+        product.sellPriceAfterDiscount = sellPriceAfterDiscount;
+
+        const emp = await manager
+          .createQueryBuilder(Employee, "emp")
+          .leftJoinAndSelect("emp.sales", "sales")
+          .where("emp.empPhone=:empPhone", { empPhone: employees[i] })
+          .getOne();
+        if (emp) {
+          emp.addSale(product);
+          await manager.save(emp);
+        }
+
+        await manager.save(product);
+      })
+    );
+
     //Creating Payment Method
 
-    const payment = new Payment();
+    const payment = manager.create(Payment);
     payment.paymentMethod = paymentMethod;
     payment.amount = paidAmount;
     await payment.save();
     //Initiating Invoice
 
-    const invoice = new Invoice();
+    const invoice = manager.create(Invoice);
 
     invoice.paymentMethod = payment;
     invoice.products = products;
@@ -210,9 +223,8 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
     invoice.vat = vat;
 
     if (returnId) {
-      const returned = await dataSource
-        .getRepository(ReturnProduct)
-        .createQueryBuilder("re")
+      const returned = await manager
+        .createQueryBuilder(ReturnProduct, "re")
         .leftJoinAndSelect("re.returnProducts", "returnProducts")
         .where("re.id=:returnId", { returnId })
         .getOne();
@@ -255,7 +267,7 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
       invoice.showroomMobile = showroom.showroomMobile;
       invoice.showroomName = showroom.showroomName;
       showroom.invoices.push(invoice);
-      await showroom.save();
+      await manager.save(showroom);
     }
 
     //Pushing products into Customer Purchase
@@ -265,26 +277,18 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
       });
       customer.paid = Math.round(customer.paid + withTax);
       customer.crm = employee.empPhone;
-      await customer.save();
+      await manager.save(customer);
     }
 
-    // Pushing Products Into Employee Sales List
-    for (const [i, product] of products.entries()) {
-      const emp = await dataSource
-        .getRepository(Employee)
-        .createQueryBuilder("emp")
-        .leftJoinAndSelect("emp.sales", "sales")
-        .where("emp.empPhone=:empPhone", { empPhone: employees[i] })
-        .getOne();
-      if (emp) {
-        await emp.addSale(product);
-      }
-    }
+    await manager.save(invoice);
 
-    await invoice.save();
+    await queryRunner.commitTransaction();
     res.status(200).json(invoice);
   } catch (e) {
+    await queryRunner.rollbackTransaction();
     res.status(500).json({ message: e.message });
+  } finally {
+    await queryRunner.release();
   }
 };
 
