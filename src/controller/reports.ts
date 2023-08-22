@@ -194,23 +194,24 @@ export default class ReportController {
 
         const productQuantity = iv.products.length - iv.returnQuantity;
 
-        const taglessTotal = iv.products.reduce((sum, p) => {
-          if (p.tagless) {
-            return sum + p.sellPriceAfterDiscount;
-          }
-          return 0;
-        }, 0);
-        const withOutTaglessTotal = iv.products.reduce((sum, p) => {
-          if (!p.tagless) {
-            return sum + p.sellPriceAfterDiscount;
-          }
-          return 0;
-        }, 0);
-
         const bkashAmount = iv.bkash;
         const cblAmount = iv.cbl;
         const cashAmount = iv.cash;
         const gapAmount = iv.invoiceAmount - (iv.bkash + iv.cbl + iv.cash);
+        const taglessTotal = iv.products
+          .filter((p) => p.tagless && p.returnStatus === false)
+          .reduce((sum, p) => {
+            return sum + p.sellPriceAfterDiscount;
+          }, 0);
+
+        const withOutTaglessTotal = iv.products
+          .filter((p) => p.tagless === false && p.returnStatus === false)
+          .reduce((sum, p) => {
+            if (p.tagless === false && p.returnStatus === false) {
+              return sum + p.sellPriceAfterDiscount;
+            }
+            return 0;
+          }, 0);
 
         if (dailySales.has(currentDate)) {
           const salesItem = dailySales.get(currentDate)!;
