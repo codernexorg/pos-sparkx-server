@@ -1,3 +1,4 @@
+import { forEach } from "underscore";
 import Payment from "../entities/Payment";
 import Customer from "../entities/customer";
 import Employee from "../entities/employee";
@@ -147,12 +148,21 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
       return next(new ErrorHandler("Please Pay Payable Amount", 404));
     }
 
-    const products = await manager
-      .createQueryBuilder(Product, "product")
-      .where("product.itemCode IN (:...productCodes)", {
-        productCodes: items.map((item) => item.itemCode),
+    const products: Product[] = [];
+
+    await Promise.all(
+      items.map(async (item) => {
+        const product = await manager
+          .createQueryBuilder(Product, "product")
+          .where("product.itemCode=:itemCode", {
+            itemCode: item.itemCode,
+          })
+          .getOne();
+        if (product) products.push(product);
       })
-      .getMany();
+    );
+
+    console.log(products);
 
     if (products.length === 0) {
       return next(new ErrorHandler("No unsold items found", 404));
@@ -168,6 +178,7 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
         product.sellingStatus = ProductStatus.Sold;
         product.discount = discounts[i];
         product.sellPriceAfterDiscount = sellPriceAfterDiscount;
+        product.returnStatus = false;
 
         const emp = await manager
           .createQueryBuilder(Employee, "emp")
@@ -188,7 +199,7 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
     const payment = manager.create(Payment);
     payment.paymentMethod = paymentMethod;
     payment.amount = paidAmount;
-    await payment.save();
+    await manager.save(payment);
     //Initiating Invoice
 
     const invoice = manager.create(Invoice);
