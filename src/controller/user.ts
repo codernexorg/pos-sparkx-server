@@ -60,10 +60,10 @@ export const createUser: ControllerFn = async (req, res, next) => {
     user.role = role;
     if (assignedShowroom !== "All") {
       const showroom = await Showroom.findOne({
-        where: { showroomName: assignedShowroom },
+        where: { showroomCode: assignedShowroom },
       });
       if (showroom) {
-        user.assignedShowroom = showroom.showroomName;
+        user.assignedShowroom = showroom.showroomCode;
       }
     }
 

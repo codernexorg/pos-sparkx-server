@@ -103,23 +103,31 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
       (await manager
         .createQueryBuilder(Showroom, "showroom")
         .leftJoinAndSelect("showroom.invoices", "invoices")
+        .leftJoinAndSelect("showroom.customer", "customer")
         .where("showroom.id=:id", { id: req.showroomId })
         .getOne()) ||
       (await manager
         .createQueryBuilder(Showroom, "showroom")
         .leftJoinAndSelect("showroom.invoices", "invoices")
+        .leftJoinAndSelect("showroom.customer", "customer")
         .where("showroom.showroomCode='HO'")
         .getOne());
 
-    // Finding the customer
+    if (!showroom) {
+      return next(new ErrorHandler("Something went wrong with showroom", 404));
+    }
 
     const customer = await manager
       .createQueryBuilder(Customer, "customer")
       .leftJoinAndSelect("customer.purchasedProducts", "purchasedProducts")
+      .leftJoinAndSelect("customer.showroom", "showroom")
       .where("customer.customerPhone=:customerMobile", {
         customerMobile: customerPhone,
       })
+      .andWhere("showroom.id=:id", { id: showroom.id })
       .getOne();
+
+    // Finding the customer
 
     // Checking If Customer Exist On Database
     if (!customer) {

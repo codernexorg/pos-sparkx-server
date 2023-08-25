@@ -192,32 +192,26 @@ export default class ReportController {
         const currentMonth = createdAt.format("MMMM");
         const currentYear = createdAt.format("YYYY");
 
-        const productQuantity = iv.products.length - iv.returnQuantity;
-
         const bkashAmount = iv.bkash;
         const cblAmount = iv.cbl;
         const cashAmount = iv.cash;
         const gapAmount = iv.invoiceAmount - (iv.bkash + iv.cbl + iv.cash);
         const taglessTotal = iv.products
-          .filter((p) => p.tagless && p.returnStatus === false)
+          .filter((p) => p.tagless)
           .reduce((sum, p) => {
             return sum + p.sellPriceAfterDiscount;
           }, 0);
 
         const withOutTaglessTotal = iv.products
-          .filter((p) => p.tagless === false && p.returnStatus === false)
+          .filter((p) => p.tagless === false)
           .reduce((sum, p) => {
-            if (p.tagless === false && p.returnStatus === false) {
-              return sum + p.sellPriceAfterDiscount;
-            }
-            return 0;
+            return sum + p.sellPriceAfterDiscount;
           }, 0);
 
         if (dailySales.has(currentDate)) {
           const salesItem = dailySales.get(currentDate)!;
 
           salesItem.total += iv.invoiceAmount;
-          salesItem.quantity += productQuantity;
           salesItem.taglessTotal += taglessTotal;
           salesItem.withOutTaglessTotal += withOutTaglessTotal;
           salesItem.bkashAmount += bkashAmount;
@@ -229,7 +223,7 @@ export default class ReportController {
             date: currentDate,
             month: currentMonth,
             year: currentYear,
-            quantity: productQuantity,
+            quantity: iv.products.length - iv.returnQuantity,
             total: iv.invoiceAmount,
             taglessTotal,
             withOutTaglessTotal,
@@ -240,6 +234,7 @@ export default class ReportController {
           });
         }
       });
+
       // Convert the Map values to an array of DailySalesReponse
       const optimizedDailySales: DailySalesResponse[] = Array.from(
         dailySales.values()

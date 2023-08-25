@@ -471,7 +471,7 @@ export const updateProduct: ControllerFn = async (req, res, next) => {
 
 export const addTaglessProduct: ControllerFn = async (req, res, next) => {
   try {
-    let showroom;
+    let showroom: Showroom | null;
     if (req.showroomId) {
       showroom = await dataSource
         .getRepository(Showroom)
@@ -511,7 +511,10 @@ export const addTaglessProduct: ControllerFn = async (req, res, next) => {
 
     const product = new Product();
 
-    const taglessProducts = filter(products, (pr) => pr.tagless);
+    const taglessProducts = filter(
+      products,
+      (pr) => pr.tagless && pr.showroomName === showroom?.showroomName
+    );
 
     product.itemCode =
       showroom.showroomCode +
