@@ -5,7 +5,6 @@ import { ControllerFn } from "../types";
 import ErrorHandler from "../utils/errorHandler";
 import dataSource from "../typeorm.config";
 import { getShowroom } from "../utils/showroom";
-import { getCustomer } from "../utils/customer";
 import { customerRepository, showroomRepository } from "../utils";
 
 export const getCustomers: ControllerFn = async (req, res, _next) => {

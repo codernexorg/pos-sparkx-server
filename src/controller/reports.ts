@@ -11,6 +11,7 @@ import Product from "../entities/product";
 import Showroom from "../entities/showroom";
 import Customer from "../entities/customer";
 import { ControllerFn, ProductStatus } from "../types";
+import ReturnProduct from "../entities/returnProduct";
 
 interface MonthlySales {
   [month: string]: number;
@@ -161,6 +162,8 @@ export default class ReportController {
         .createQueryBuilder("invoice")
         .leftJoinAndSelect("invoice.products", "products")
         .leftJoinAndSelect("invoice.paymentMethod", "paymentMethod")
+        .leftJoinAndSelect("invoice.returned", "returned")
+        .leftJoinAndSelect("returned.returnProducts", "returnProducts")
         .where(
           "DATE(invoice.createdAt) >= :start_date AND DATE(invoice.createdAt) <= :end_date",
           { start_date: startOfMonth, end_date: endOfMonth }
@@ -182,6 +185,8 @@ export default class ReportController {
         cblAmount: number;
         cashAmount: number;
         gapAmount: number;
+        taglessReturn: number;
+        withTagReturn: number;
       }
 
       const dailySales: Map<string, DailySalesResponse> = new Map();
@@ -196,25 +201,47 @@ export default class ReportController {
         const cblAmount = iv.cbl;
         const cashAmount = iv.cash;
         const gapAmount = iv.invoiceAmount - (iv.bkash + iv.cbl + iv.cash);
-        const taglessTotal = iv.products
-          .filter((p) => p.tagless)
-          .reduce((sum, p) => {
-            return sum + p.sellPriceAfterDiscount;
-          }, 0);
+        const qty = iv.products.length - iv.returnQuantity;
 
-        const withOutTaglessTotal = iv.products
-          .filter((p) => p.tagless === false)
-          .reduce((sum, p) => {
-            return sum + p.sellPriceAfterDiscount;
-          }, 0);
+        let taglessTotal = 0;
+
+        let withOutTaglessTotal = 0;
+
+        for (let i = 0; i < iv.products.length; i++) {
+          if (iv.products[i].tagless) {
+            taglessTotal += iv.products[i].sellPriceAfterDiscount;
+          } else {
+            withOutTaglessTotal = iv.products[i].sellPriceAfterDiscount;
+          }
+        }
+
+        let taglessReturn = 0;
+
+        let withTagReturn = 0;
+
+        if (
+          iv?.returned?.returnProducts &&
+          moment(iv.returned?.createdAt).format("DD-MM-YYYY") === currentDate
+        ) {
+          iv.returned.returnProducts.forEach((rp) => {
+            if (rp.tagless) {
+              taglessReturn += rp.sellPriceAfterDiscount;
+            } else {
+              withTagReturn += rp.sellPriceAfterDiscount;
+            }
+          });
+        }
 
         if (dailySales.has(currentDate)) {
           const salesItem = dailySales.get(currentDate)!;
-
           salesItem.total += iv.invoiceAmount;
-          salesItem.taglessTotal += taglessTotal;
+          salesItem.quantity += qty;
+
           salesItem.withOutTaglessTotal += withOutTaglessTotal;
+          salesItem.taglessTotal += taglessTotal;
           salesItem.bkashAmount += bkashAmount;
+          salesItem.withTagReturn += withTagReturn;
+          salesItem.taglessReturn += taglessReturn;
           salesItem.cashAmount += cashAmount;
           salesItem.cblAmount += cblAmount;
           salesItem.gapAmount += gapAmount;
@@ -223,7 +250,7 @@ export default class ReportController {
             date: currentDate,
             month: currentMonth,
             year: currentYear,
-            quantity: iv.products.length - iv.returnQuantity,
+            quantity: qty,
             total: iv.invoiceAmount,
             taglessTotal,
             withOutTaglessTotal,
@@ -231,6 +258,8 @@ export default class ReportController {
             cblAmount,
             cashAmount,
             gapAmount,
+            withTagReturn,
+            taglessReturn,
           });
         }
       });
@@ -244,22 +273,25 @@ export default class ReportController {
         optimizedDailySales.map((d, _idx, arr) => {
           const totalQty = arr.reduce((a, b) => a + b.quantity, 0);
           const totalAmount = arr.reduce((a, b) => a + b.total, 0);
-          const totalTaglessAmount = arr.reduce(
-            (a, b) => a + b.taglessTotal,
-            0
-          );
+          const totalTaglessAmount =
+            arr.reduce((a, b) => a + b.taglessTotal, 0) -
+            arr.reduce((a, b) => a + b.taglessReturn, 0);
 
-          const totalWithOutTaglessAmount = arr.reduce(
-            (a, b) => a + b.withOutTaglessTotal,
-            0
-          );
+          const totalWithOutTaglessAmount =
+            arr.reduce((a, b) => a + b.withOutTaglessTotal, 0) -
+            arr.reduce((a, b) => a + b.withTagReturn, 0);
           const totalCashAmount = arr.reduce((a, b) => a + b.cashAmount, 0);
           const totalBkashAmount = arr.reduce((a, b) => a + b.bkashAmount, 0);
           const totalCblAmount = arr.reduce((a, b) => a + b.cblAmount, 0);
           const totalGapAmount = arr.reduce((a, b) => a + b.gapAmount, 0);
-
           return {
             ...d,
+            taglessTotal: d.taglessTotal
+              ? d.taglessTotal - d.taglessReturn
+              : d.taglessTotal,
+            withOutTaglessTotal: d.withOutTaglessTotal
+              ? d.withOutTaglessTotal - d.withTagReturn
+              : d.withOutTaglessTotal,
             totalQty,
             totalAmount,
             average: d.total / d.quantity,

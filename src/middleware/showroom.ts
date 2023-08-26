@@ -11,8 +11,8 @@ export const showRoomAccess: ControllerFn = async (req, _res, next) => {
   const showroom = await dataSource
     .getRepository(Showroom)
     .createQueryBuilder("showroom")
-    .where("showroom.showroomName=:showroomName", {
-      showroomName: user.assignedShowroom,
+    .where("showroom.showroomCode=:showroomCode", {
+      showroomCode: user.assignedShowroom,
     })
     .getOne();
 
