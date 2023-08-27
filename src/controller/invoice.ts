@@ -61,6 +61,10 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
       return next(new ErrorHandler("Please Select A Payment Method", 404));
     }
 
+    if (!employees) {
+      return next(new ErrorHandler("Please Select Employee", 404));
+    }
+
     //Checking if there any product to sell
 
     if (!items || !items.length) {

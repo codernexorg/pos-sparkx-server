@@ -111,7 +111,7 @@ export const loginUser: ControllerFn = async (req, res, next) => {
     }
 
     const token = jwt.sign({ userId: user.id }, sanitizedConfig.JWT_SECRET, {
-      expiresIn: 1000 * 60 * 60 * 24 * 365,
+      expiresIn: 1000 * 60 * 60 * 12,
     });
 
     return sendToken(token, user, res, next);
