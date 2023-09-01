@@ -10,8 +10,7 @@ import Employee from "../entities/employee";
 import Product from "../entities/product";
 import Showroom from "../entities/showroom";
 import Customer from "../entities/customer";
-import { ControllerFn, ProductStatus } from "../types";
-import ReturnProduct from "../entities/returnProduct";
+import { ControllerFn } from "../types";
 
 interface MonthlySales {
   [month: string]: number;
@@ -211,7 +210,7 @@ export default class ReportController {
           if (iv.products[i].tagless) {
             taglessTotal += iv.products[i].sellPriceAfterDiscount;
           } else {
-            withOutTaglessTotal = iv.products[i].sellPriceAfterDiscount;
+            withOutTaglessTotal += iv.products[i].sellPriceAfterDiscount;
           }
         }
 

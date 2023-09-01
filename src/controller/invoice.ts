@@ -56,36 +56,21 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
       returnId: number | null;
     };
 
-    //Checking IF Payment Method Selected
-    if (!paymentMethod) {
+    //Error Handling
+    if (!paymentMethod)
       return next(new ErrorHandler("Please Select A Payment Method", 404));
-    }
-
-    if (!employees) {
+    if (!employees)
       return next(new ErrorHandler("Please Select Employee", 404));
-    }
-
-    //Checking if there any product to sell
-
-    if (!items || !items.length) {
+    if (!items || !items.length)
       return next(new ErrorHandler("No product to sell", 404));
-    }
-
-    //Checking if employee selected for all products coming to sell
-
-    if (employees.length !== items.length) {
+    if (employees.length !== items.length)
       return next(
         new ErrorHandler("Please Select Employee For All Products", 400)
       );
-    }
-
-    //Checking if There Any Customer Relation Manager
-
-    if (!crmPhone) {
+    if (!crmPhone)
       return next(
         new ErrorHandler("Please Select A CRM For This Customer", 404)
       );
-    }
 
     // Finding The CRM For Customer
 
@@ -103,19 +88,12 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
 
     // Finding The Showroom For Sells
 
-    const showroom =
-      (await manager
-        .createQueryBuilder(Showroom, "showroom")
-        .leftJoinAndSelect("showroom.invoices", "invoices")
-        .leftJoinAndSelect("showroom.customer", "customer")
-        .where("showroom.id=:id", { id: req.showroomId })
-        .getOne()) ||
-      (await manager
-        .createQueryBuilder(Showroom, "showroom")
-        .leftJoinAndSelect("showroom.invoices", "invoices")
-        .leftJoinAndSelect("showroom.customer", "customer")
-        .where("showroom.showroomCode='HO'")
-        .getOne());
+    const showroom = await manager
+      .createQueryBuilder(Showroom, "showroom")
+      .leftJoinAndSelect("showroom.invoices", "invoices")
+      .leftJoinAndSelect("showroom.customer", "customer")
+      .where("showroom.id=:id", { id: req.showroomId })
+      .getOne();
 
     if (!showroom) {
       return next(new ErrorHandler("Something went wrong with showroom", 404));
@@ -134,12 +112,7 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
     // Finding the customer
 
     // Checking If Customer Exist On Database
-    if (!customer) {
-      return next(new ErrorHandler("No Customer Found", 404));
-    }
-
-    // Checking If Customer Have CRM Or Not
-    if (!customer.crm && !crmPhone) {
+    if (!customer || (!customer.crm && !crmPhone)) {
       return next(
         new ErrorHandler("Please Select A CRM For This Customer", 404)
       );
@@ -174,8 +147,6 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
       })
     );
 
-    console.log(products);
-
     if (products.length === 0) {
       return next(new ErrorHandler("No unsold items found", 404));
     }
@@ -201,8 +172,6 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
           emp.addSale(product);
           await manager.save(emp);
         }
-
-        await manager.save(product);
       })
     );
 
@@ -232,17 +201,11 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
     invoice.customerMobile = customer.customerPhone;
     invoice.quantity = products.length;
     invoice.cash =
-      paymentMethod !== "MULTIPLE" && paymentMethod === "CASH"
-        ? cash - invoice.changeAmount
-        : cash;
-    invoice.cbl =
-      paymentMethod !== "MULTIPLE" && paymentMethod === "CBL"
-        ? cbl - invoice.changeAmount
-        : cbl;
+      paymentMethod === "CASH" ? cash - invoice.changeAmount : cash;
+    invoice.cbl = paymentMethod === "CBL" ? cbl - invoice.changeAmount : cbl;
     invoice.bkash =
-      paymentMethod !== "MULTIPLE" && paymentMethod === "BKASH"
-        ? bkash - invoice.changeAmount
-        : bkash;
+      paymentMethod === "BKASH" ? bkash - invoice.changeAmount : bkash;
+
     invoice.vat = vat;
 
     if (returnId) {
@@ -276,8 +239,6 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
     // Sells Time Manual
     if (salesTime) {
       invoice.createdAt = new Date(salesTime);
-    } else {
-      invoice.createdAt = new Date(Date.now());
     }
 
     //Updating invoice & Pushing into showroom
