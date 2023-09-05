@@ -56,41 +56,27 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
       returnId: number | null;
     };
 
-    //Checking IF Payment Method Selected
-    if (!paymentMethod) {
+    //Error Handling
+    if (!paymentMethod)
       return next(new ErrorHandler("Please Select A Payment Method", 404));
-    }
-
-    if (!employees) {
+    if (!employees)
       return next(new ErrorHandler("Please Select Employee", 404));
-    }
-
-    //Checking if there any product to sell
-
-    if (!items || !items.length) {
+    if (!items || !items.length)
       return next(new ErrorHandler("No product to sell", 404));
-    }
-
-    //Checking if employee selected for all products coming to sell
-
-    if (employees.length !== items.length) {
+    if (employees.length !== items.length)
       return next(
         new ErrorHandler("Please Select Employee For All Products", 400)
       );
-    }
-
-    //Checking if There Any Customer Relation Manager
-
-    if (!crmPhone) {
+    if (!crmPhone)
       return next(
         new ErrorHandler("Please Select A CRM For This Customer", 404)
       );
-    }
 
     // Finding The CRM For Customer
 
     const employee = await manager
-      .createQueryBuilder(Employee, "emp")
+      .getRepository(Employee)
+      .createQueryBuilder("emp")
       .where("emp.empPhone=:crmPhone", { crmPhone })
       .leftJoinAndSelect("emp.sales", "sales")
       .getOne();
@@ -103,26 +89,21 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
 
     // Finding The Showroom For Sells
 
-    const showroom =
-      (await manager
-        .createQueryBuilder(Showroom, "showroom")
-        .leftJoinAndSelect("showroom.invoices", "invoices")
-        .leftJoinAndSelect("showroom.customer", "customer")
-        .where("showroom.id=:id", { id: req.showroomId })
-        .getOne()) ||
-      (await manager
-        .createQueryBuilder(Showroom, "showroom")
-        .leftJoinAndSelect("showroom.invoices", "invoices")
-        .leftJoinAndSelect("showroom.customer", "customer")
-        .where("showroom.showroomCode='HO'")
-        .getOne());
+    const showroom = await manager
+      .getRepository(Showroom)
+      .createQueryBuilder("showroom")
+      .leftJoinAndSelect("showroom.invoices", "invoices")
+      .leftJoinAndSelect("showroom.customer", "customer")
+      .where("showroom.id=:id", { id: req.showroomId })
+      .getOne();
 
     if (!showroom) {
       return next(new ErrorHandler("Something went wrong with showroom", 404));
     }
 
     const customer = await manager
-      .createQueryBuilder(Customer, "customer")
+      .getRepository(Customer)
+      .createQueryBuilder("customer")
       .leftJoinAndSelect("customer.purchasedProducts", "purchasedProducts")
       .leftJoinAndSelect("customer.showroom", "showroom")
       .where("customer.customerPhone=:customerMobile", {
@@ -134,12 +115,7 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
     // Finding the customer
 
     // Checking If Customer Exist On Database
-    if (!customer) {
-      return next(new ErrorHandler("No Customer Found", 404));
-    }
-
-    // Checking If Customer Have CRM Or Not
-    if (!customer.crm && !crmPhone) {
+    if (!customer || (!customer.crm && !crmPhone)) {
       return next(
         new ErrorHandler("Please Select A CRM For This Customer", 404)
       );
@@ -165,7 +141,8 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
     await Promise.all(
       items.map(async (item) => {
         const product = await manager
-          .createQueryBuilder(Product, "product")
+          .getRepository(Product)
+          .createQueryBuilder("product")
           .where("product.itemCode=:itemCode", {
             itemCode: item.itemCode,
           })
@@ -173,8 +150,6 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
         if (product) products.push(product);
       })
     );
-
-    console.log(products);
 
     if (products.length === 0) {
       return next(new ErrorHandler("No unsold items found", 404));
@@ -193,7 +168,8 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
         product.returnStatus = false;
 
         const emp = await manager
-          .createQueryBuilder(Employee, "emp")
+          .getRepository(Employee)
+          .createQueryBuilder("emp")
           .leftJoinAndSelect("emp.sales", "sales")
           .where("emp.empPhone=:empPhone", { empPhone: employees[i] })
           .getOne();
@@ -201,8 +177,6 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
           emp.addSale(product);
           await manager.save(emp);
         }
-
-        await manager.save(product);
       })
     );
 
@@ -232,22 +206,17 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
     invoice.customerMobile = customer.customerPhone;
     invoice.quantity = products.length;
     invoice.cash =
-      paymentMethod !== "MULTIPLE" && paymentMethod === "CASH"
-        ? cash - invoice.changeAmount
-        : cash;
-    invoice.cbl =
-      paymentMethod !== "MULTIPLE" && paymentMethod === "CBL"
-        ? cbl - invoice.changeAmount
-        : cbl;
+      paymentMethod === "CASH" ? cash - invoice.changeAmount : cash;
+    invoice.cbl = paymentMethod === "CBL" ? cbl - invoice.changeAmount : cbl;
     invoice.bkash =
-      paymentMethod !== "MULTIPLE" && paymentMethod === "BKASH"
-        ? bkash - invoice.changeAmount
-        : bkash;
+      paymentMethod === "BKASH" ? bkash - invoice.changeAmount : bkash;
+
     invoice.vat = vat;
 
     if (returnId) {
       const returned = await manager
-        .createQueryBuilder(ReturnProduct, "re")
+        .getRepository(ReturnProduct)
+        .createQueryBuilder("re")
         .leftJoinAndSelect("re.returnProducts", "returnProducts")
         .where("re.id=:returnId", { returnId })
         .getOne();
@@ -276,8 +245,6 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
     // Sells Time Manual
     if (salesTime) {
       invoice.createdAt = new Date(salesTime);
-    } else {
-      invoice.createdAt = new Date(Date.now());
     }
 
     //Updating invoice & Pushing into showroom

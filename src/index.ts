@@ -27,7 +27,6 @@ import {
   supplierRoutes,
   taxRoutes,
   userRoutes,
-  warehouseRoutes,
 } from "./routes";
 import { deleteExpiredHoldInvoices } from "./utils/auto";
 
@@ -85,13 +84,6 @@ const mount = async (app: Application) => {
     supplierRoutes
   );
 
-  app.use(
-    "/api/v1/warehouse",
-    isAuth,
-    commonAuth,
-    showRoomAccess,
-    warehouseRoutes
-  );
   app.use(
     "/api/v1/showroom",
     isAuth,
