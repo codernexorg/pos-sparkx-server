@@ -4,7 +4,6 @@ import Showroom from "../entities/showroom";
 import { ControllerFn } from "../types";
 import ErrorHandler from "../utils/errorHandler";
 import dataSource from "../typeorm.config";
-import { getShowroom } from "../utils/showroom";
 import { customerRepository, showroomRepository } from "../utils";
 
 export const getCustomers: ControllerFn = async (req, res, _next) => {
@@ -40,13 +39,13 @@ export const createCustomer: ControllerFn = async (req, res, next) => {
       );
     }
 
-    let showroom: Showroom | null;
-
-    if (req.showroomId) {
-      showroom = await getShowroom({ id: req.showroomId });
-    } else {
-      showroom = await getShowroom({ showroomCode: showroomCode });
-    }
+    const showroom = await dataSource
+      .getRepository(Showroom)
+      .createQueryBuilder("sr")
+      .leftJoinAndSelect("sr.customer", "customer")
+      .where("sr.id=:id", { id: req?.showroomId })
+      .orWhere("sr.showroomCode=:showroomCode", { showroomCode })
+      .getOne();
 
     if (!showroom) {
       return next(new ErrorHandler("Showroom not found", 400));

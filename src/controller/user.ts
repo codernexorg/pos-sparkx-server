@@ -12,6 +12,7 @@ import {
 } from "../types";
 import ErrorHandler from "../utils/errorHandler";
 import { sendToken } from "../utils/sendToken";
+import appDataSource from "../typeorm.config";
 
 export const createUser: ControllerFn = async (req, res, next) => {
   try {
@@ -34,19 +35,14 @@ export const createUser: ControllerFn = async (req, res, next) => {
       return next(new ErrorHandler("No Secret Key Found", 403));
     }
 
-    const userExistWithEmail = await User.findOne({
-      where: {
-        email,
-      },
-    });
+    const userExistWithEmail = await appDataSource
+      .getRepository(User)
+      .createQueryBuilder("user")
+      .where("user.email=:email", { email })
+      .orWhere("user.username=:username", { username })
+      .getOne();
 
-    const userExistWitUserName = await User.findOne({
-      where: {
-        username,
-      },
-    });
-
-    if (userExistWitUserName || userExistWithEmail) {
+    if (userExistWithEmail) {
       return next(new ErrorHandler("User already exist", 404));
     }
 
@@ -59,9 +55,14 @@ export const createUser: ControllerFn = async (req, res, next) => {
     user.name = name;
     user.role = role;
     if (assignedShowroom !== "All") {
-      const showroom = await Showroom.findOne({
-        where: { showroomCode: assignedShowroom },
-      });
+      const showroom = await appDataSource
+        .getRepository(Showroom)
+        .createQueryBuilder("sr")
+        .where("sr.showroomCode=:showroomCode", {
+          showroomCode: assignedShowroom,
+        })
+        .getOne();
+
       if (showroom) {
         user.assignedShowroom = showroom.showroomCode;
       }
@@ -91,15 +92,12 @@ export const loginUser: ControllerFn = async (req, res, next) => {
       return next(new ErrorHandler("Please enter valid information", 404));
     }
 
-    const user = await User.findOne({
-      where: usernameOrEmail.includes("@")
-        ? {
-            email: usernameOrEmail,
-          }
-        : {
-            username: usernameOrEmail,
-          },
-    });
+    const user = await appDataSource
+      .getRepository(User)
+      .createQueryBuilder("user")
+      .where("user.email=:usernameOrEmail", { usernameOrEmail })
+      .orWhere("user.username=:usernameOrEmail", { usernameOrEmail })
+      .getOne();
 
     if (!user) {
       return next(new ErrorHandler("Invalid User or Password", 404));
@@ -135,7 +133,11 @@ export const updateUser: ControllerFn = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const user = await User.findOne({ where: { id } });
+    const user = await appDataSource
+      .getRepository(User)
+      .createQueryBuilder("user")
+      .where("user.id=:id", { id })
+      .getOne();
 
     if (!user) {
       return next(new ErrorHandler("No User Found", 404));
@@ -165,16 +167,29 @@ export const deleteUser: ControllerFn = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const user = await User.findOne({ where: { id } });
+    const user = await appDataSource
+      .getRepository(User)
+      .createQueryBuilder("user")
+      .where("user.id=:id", { id })
+      .getOne();
 
     if (!user) {
       return next(new ErrorHandler("No User Found", 404));
     }
-    if (user.role === UserRole.SA)
+    if (user.role === UserRole.SA) {
       return next(new ErrorHandler("Admin Account Can'\t be deleted", 404));
+    }
+
     await user.remove();
 
-    res.status(200).json(await User.find());
+    res
+      .status(200)
+      .json(
+        await appDataSource
+          .getRepository(User)
+          .createQueryBuilder("user")
+          .getMany()
+      );
   } catch (e) {
     res.status(500).json({ message: e.message });
   }

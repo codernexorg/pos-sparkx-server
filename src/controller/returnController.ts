@@ -201,11 +201,21 @@ export const getReturns: ControllerFn = async (req, res) => {
 export const getReturnReport: ControllerFn = async (req, res, next) => {
   try {
     const { showroomCode } = req.query;
-    const showroom = await appDataSource
-      .getRepository(Showroom)
-      .createQueryBuilder("sr")
-      .where("sr.showroomCode=:showroomCode", { showroomCode })
-      .getOne();
+    const showroom = req.showroomId
+      ? await appDataSource
+          .getRepository(Showroom)
+          .createQueryBuilder("sr")
+          .where("sr.id=:id", { id: req.showroomId })
+          .getOne()
+      : await appDataSource
+          .getRepository(Showroom)
+          .createQueryBuilder("sr")
+          .where("sr.showroomCode=:showroomCode", { showroomCode })
+          .getOne();
+
+    if (!showroom) {
+      return next(new ErrorHandler("Showroom not found", 404));
+    }
 
     const data = await appDataSource
       .getRepository(Invoice)

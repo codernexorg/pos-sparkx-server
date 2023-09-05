@@ -12,21 +12,23 @@ export const createEmp: ControllerFn = async (req, res, next) => {
     if (!empName || !designation || !empPhone) {
       return next(new ErrorHandler("Please Provide required Information", 400));
     }
-    let showroom: Showroom | null;
-
-    if (req.showroomId) {
-      showroom = await Showroom.findOne({ where: { id: req.showroomId } });
-    } else {
-      showroom = await Showroom.findOne({
-        where: { showroomCode: showroomCode },
-      });
-    }
+    const showroom = await dataSource
+      .getRepository(Showroom)
+      .createQueryBuilder("sr")
+      .leftJoinAndSelect("sr.employees", "employees")
+      .where("sr.id=:id", { id: req?.showroomId })
+      .orWhere("sr.showroomCode=:showroomCode", { showroomCode })
+      .getOne();
 
     if (!showroom) {
       return next(new ErrorHandler("Showroom Not Found", 400));
     }
 
-    const isExist = await Employee.findOne({ where: { empPhone } });
+    const isExist = await dataSource
+      .getRepository(Employee)
+      .createQueryBuilder("emp")
+      .where("emp.empPhone=:empPhone", { empPhone })
+      .getOne();
 
     if (isExist) {
       return next(new ErrorHandler("Employee Already Exists", 400));
@@ -94,7 +96,11 @@ export const updateEmployee: ControllerFn = async (req, res, _next) => {
   try {
     const id = req.params.id;
 
-    const employee = await Employee.findOne({ where: { id: id } });
+    const employee = await dataSource
+      .getRepository(Employee)
+      .createQueryBuilder("emp")
+      .where("emp.id=:id", { id })
+      .getOne();
 
     if (!employee) {
       return _next(new ErrorHandler("Employee Does not Exists", 404));
@@ -113,7 +119,11 @@ export const deleteEmployee: ControllerFn = async (req, res, _next) => {
   try {
     const id = req.params.id;
 
-    const employee = await Employee.findOne({ where: { id: id } });
+    const employee = await dataSource
+      .getRepository(Employee)
+      .createQueryBuilder("emp")
+      .where("emp.id=:id", { id })
+      .getOne();
 
     if (!employee) {
       return _next(new ErrorHandler("Employee Does not Exists", 404));

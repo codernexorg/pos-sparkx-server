@@ -75,7 +75,8 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
     // Finding The CRM For Customer
 
     const employee = await manager
-      .createQueryBuilder(Employee, "emp")
+      .getRepository(Employee)
+      .createQueryBuilder("emp")
       .where("emp.empPhone=:crmPhone", { crmPhone })
       .leftJoinAndSelect("emp.sales", "sales")
       .getOne();
@@ -89,7 +90,8 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
     // Finding The Showroom For Sells
 
     const showroom = await manager
-      .createQueryBuilder(Showroom, "showroom")
+      .getRepository(Showroom)
+      .createQueryBuilder("showroom")
       .leftJoinAndSelect("showroom.invoices", "invoices")
       .leftJoinAndSelect("showroom.customer", "customer")
       .where("showroom.id=:id", { id: req.showroomId })
@@ -100,7 +102,8 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
     }
 
     const customer = await manager
-      .createQueryBuilder(Customer, "customer")
+      .getRepository(Customer)
+      .createQueryBuilder("customer")
       .leftJoinAndSelect("customer.purchasedProducts", "purchasedProducts")
       .leftJoinAndSelect("customer.showroom", "showroom")
       .where("customer.customerPhone=:customerMobile", {
@@ -138,7 +141,8 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
     await Promise.all(
       items.map(async (item) => {
         const product = await manager
-          .createQueryBuilder(Product, "product")
+          .getRepository(Product)
+          .createQueryBuilder("product")
           .where("product.itemCode=:itemCode", {
             itemCode: item.itemCode,
           })
@@ -164,7 +168,8 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
         product.returnStatus = false;
 
         const emp = await manager
-          .createQueryBuilder(Employee, "emp")
+          .getRepository(Employee)
+          .createQueryBuilder("emp")
           .leftJoinAndSelect("emp.sales", "sales")
           .where("emp.empPhone=:empPhone", { empPhone: employees[i] })
           .getOne();
@@ -210,7 +215,8 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
 
     if (returnId) {
       const returned = await manager
-        .createQueryBuilder(ReturnProduct, "re")
+        .getRepository(ReturnProduct)
+        .createQueryBuilder("re")
         .leftJoinAndSelect("re.returnProducts", "returnProducts")
         .where("re.id=:returnId", { returnId })
         .getOne();
