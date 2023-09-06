@@ -182,13 +182,13 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
 
     //Creating Payment Method
 
-    const payment = manager.create(Payment);
+    const payment = new Payment();
     payment.paymentMethod = paymentMethod;
     payment.amount = paidAmount;
     await manager.save(payment);
     //Initiating Invoice
 
-    const invoice = manager.create(Invoice);
+    const invoice = new Invoice();
 
     invoice.paymentMethod = payment;
     invoice.products = products;

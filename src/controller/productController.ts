@@ -83,7 +83,7 @@ export const createSingleProduct: ControllerFn = async (req, res, next) => {
     await queryRunner.startTransaction();
 
     // Create Purchase
-    const purchase = manager.create(Purchase);
+    const purchase = new Purchase();
     purchase.quantity = totalItem;
     purchase.invoiceNo = invoiceNumber;
     purchase.supplierName = supplierName;

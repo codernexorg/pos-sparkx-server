@@ -8,6 +8,7 @@ import { customerRepository, showroomRepository } from "../utils";
 
 export const getCustomers: ControllerFn = async (req, res, _next) => {
   let customers: Customer[];
+
   if (req.showroomId) {
     customers = await dataSource
       .getRepository(Customer)
@@ -66,7 +67,7 @@ export const createCustomer: ControllerFn = async (req, res, next) => {
 
     //Creating Customer
 
-    const customer = customerRepository.create();
+    const customer = new Customer();
     customer.customerPhone = customerPhone;
     customer.customerName = customerName;
     customer.customerEmail = req.body?.customerEmail;
