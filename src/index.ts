@@ -14,7 +14,6 @@ import dataSource from "./typeorm.config";
 import {
   authRoutes,
   barcodeRoutes,
-  brandRoutes,
   businessRoutes,
   customerRoutes,
   employeeRoutes,
@@ -94,8 +93,6 @@ const mount = async (app: Application) => {
 
   app.use("/api/v1/barcode", isAuth, commonAuth, barcodeRoutes);
 
-  app.use("/api/v1/brands", isAuth, commonAuth, brandRoutes);
-
   app.use("/api/v1/invoice", isAuth, commonAuth, showRoomAccess, invoiceRoutes);
 
   app.use(
@@ -117,7 +114,6 @@ const mount = async (app: Application) => {
   app.use("/api/v1/business", isAuth, commonAuth, businessRoutes);
   app.use("/api/v1/db", seedRoutes);
   app.use("/api/v1/reports", isAuth, commonAuth, showRoomAccess, reportsRoutes);
-  // app.use("/api/v1/expense", isAuth, commonAuth, showRoomAccess, expense);
   app.get("/api/v1/audit", isAuth, commonAuth, getAudit);
   app.use(errorMiddleware);
 

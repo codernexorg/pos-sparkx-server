@@ -9,7 +9,6 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from "typeorm";
-import Expenses from "./expenses";
 import Customer from "./customer";
 import Invoice from "./invoice";
 import Employee from "./employee";
@@ -30,12 +29,6 @@ export default class Showroom extends BaseEntity {
 
   @Column()
   showroomAddress: string;
-
-  @OneToMany(() => Expenses, (ex) => ex.showroom, {
-    cascade: true,
-    eager: true,
-  })
-  expenses: Expenses[];
 
   @OneToMany(() => Customer, (cm) => cm.showroom, {
     cascade: true,

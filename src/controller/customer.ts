@@ -4,7 +4,6 @@ import Showroom from "../entities/showroom";
 import { ControllerFn } from "../types";
 import ErrorHandler from "../utils/errorHandler";
 import dataSource from "../typeorm.config";
-import { customerRepository, showroomRepository } from "../utils";
 
 export const getCustomers: ControllerFn = async (req, res, _next) => {
   let customers: Customer[];
@@ -75,8 +74,8 @@ export const createCustomer: ControllerFn = async (req, res, next) => {
 
     // Adding Customer to showroom
     showroom.addCustomer(customer);
-    await showroomRepository.save(showroom);
-    await customerRepository.save(customer);
+    await showroom.save();
+    await customer.save();
 
     res.status(201).json(customer);
   } catch (e) {
