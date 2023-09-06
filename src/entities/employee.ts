@@ -11,7 +11,6 @@ import {
   UpdateDateColumn,
 } from "typeorm";
 import { EmpDesignation } from "../types";
-import Salary from "./salary";
 import Product from "./product";
 import Showroom from "./showroom";
 
@@ -52,9 +51,6 @@ export default class Employee extends BaseEntity {
 
   @Column({ nullable: true })
   joiningDate: Date;
-
-  @OneToMany(() => Salary, (sl) => sl.employee, { cascade: true, eager: true })
-  salary: Salary[];
 
   @ManyToOne(() => Showroom, (sr) => sr.employees, {
     onDelete: "SET NULL",

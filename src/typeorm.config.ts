@@ -4,23 +4,17 @@ import Showroom from "./entities/showroom";
 import User from "./entities/user";
 import Product from "./entities/product";
 import Purchase from "./entities/purchase";
-import Expenses from "./entities/expenses";
-import WareHouse from "./entities/warehouse";
 import Supplier from "./entities/supplier";
-import ExpenseType from "./entities/expenseType";
 import Business from "./entities/business";
 import Barcode from "./entities/barcode";
-import Brand from "./entities/brand";
 import ProductGroup from "./entities/productGroup";
 import Category from "./entities/category";
-import Salary from "./entities/salary";
 import Invoice from "./entities/invoice";
 import Customer from "./entities/customer";
 import Tax from "./entities/tax";
 import TransferProduct from "./entities/transfer";
 import Employee from "./entities/employee";
 import BarcodeDefault from "./entities/barcodeDefault";
-import Account from "./entities/account";
 import Payment from "./entities/Payment";
 import HoldInvoice from "./entities/holdInvoice";
 import ReturnProduct from "./entities/returnProduct";
@@ -38,24 +32,18 @@ const appDataSource = new DataSource({
     Showroom,
     User,
     Product,
-    WareHouse,
     ProductGroup,
     Category,
     Supplier,
     Barcode,
     Invoice,
-    Brand,
     Customer,
     TransferProduct,
     Tax,
     Business,
-    Expenses,
-    ExpenseType,
-    Salary,
     Purchase,
     Employee,
     BarcodeDefault,
-    Account,
     Payment,
     HoldInvoice,
     ReturnProduct,
