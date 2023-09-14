@@ -1,4 +1,3 @@
-import { forEach } from "underscore";
 import Payment from "../entities/Payment";
 import Customer from "../entities/customer";
 import Employee from "../entities/employee";
@@ -173,6 +172,7 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
           emp.addSale(product);
           await emp.save();
         }
+        await product.save();
       })
     );
 
