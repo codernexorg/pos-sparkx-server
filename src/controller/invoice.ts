@@ -1,4 +1,3 @@
-import { forEach } from "underscore";
 import Payment from "../entities/Payment";
 import Customer from "../entities/customer";
 import Employee from "../entities/employee";
@@ -17,8 +16,6 @@ import {
 import ErrorHandler from "../utils/errorHandler";
 
 export const createInvoice: ControllerFn = async (req, res, next) => {
-  const queryRunner = appDataSource.createQueryRunner();
-  const manager = queryRunner.manager;
   try {
     const {
       items,
@@ -74,7 +71,7 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
 
     // Finding The CRM For Customer
 
-    const employee = await manager
+    const employee = await appDataSource
       .getRepository(Employee)
       .createQueryBuilder("emp")
       .where("emp.empPhone=:crmPhone", { crmPhone })
@@ -89,7 +86,7 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
 
     // Finding The Showroom For Sells
 
-    const showroom = await manager
+    const showroom = await appDataSource
       .getRepository(Showroom)
       .createQueryBuilder("showroom")
       .leftJoinAndSelect("showroom.invoices", "invoices")
@@ -101,7 +98,7 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
       return next(new ErrorHandler("Something went wrong with showroom", 404));
     }
 
-    const customer = await manager
+    const customer = await appDataSource
       .getRepository(Customer)
       .createQueryBuilder("customer")
       .leftJoinAndSelect("customer.purchasedProducts", "purchasedProducts")
@@ -140,7 +137,7 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
 
     await Promise.all(
       items.map(async (item) => {
-        const product = await manager
+        const product = await appDataSource
           .getRepository(Product)
           .createQueryBuilder("product")
           .where("product.itemCode=:itemCode", {
@@ -155,8 +152,6 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
       return next(new ErrorHandler("No unsold items found", 404));
     }
 
-    await queryRunner.startTransaction();
-
     await Promise.all(
       products.map(async (product, i) => {
         const sellPriceAfterDiscount = Math.round(
@@ -167,7 +162,7 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
         product.sellPriceAfterDiscount = sellPriceAfterDiscount;
         product.returnStatus = false;
 
-        const emp = await manager
+        const emp = await appDataSource
           .getRepository(Employee)
           .createQueryBuilder("emp")
           .leftJoinAndSelect("emp.sales", "sales")
@@ -175,8 +170,9 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
           .getOne();
         if (emp) {
           emp.addSale(product);
-          await manager.save(emp);
+          await emp.save();
         }
+        await product.save();
       })
     );
 
@@ -185,7 +181,7 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
     const payment = new Payment();
     payment.paymentMethod = paymentMethod;
     payment.amount = paidAmount;
-    await manager.save(payment);
+    await payment.save();
     //Initiating Invoice
 
     const invoice = new Invoice();
@@ -214,7 +210,7 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
     invoice.vat = vat;
 
     if (returnId) {
-      const returned = await manager
+      const returned = await appDataSource
         .getRepository(ReturnProduct)
         .createQueryBuilder("re")
         .leftJoinAndSelect("re.returnProducts", "returnProducts")
@@ -257,7 +253,7 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
       invoice.showroomMobile = showroom.showroomMobile;
       invoice.showroomName = showroom.showroomName;
       showroom.invoices.push(invoice);
-      await manager.save(showroom);
+      await showroom.save();
     }
 
     //Pushing products into Customer Purchase
@@ -267,18 +263,14 @@ export const createInvoice: ControllerFn = async (req, res, next) => {
       });
       customer.paid = Math.round(customer.paid + withTax);
       customer.crm = employee.empPhone;
-      await manager.save(customer);
+      await customer.save();
     }
 
-    await manager.save(invoice);
+    await invoice.save();
 
-    await queryRunner.commitTransaction();
     res.status(200).json(invoice);
   } catch (e) {
-    await queryRunner.rollbackTransaction();
     res.status(500).json({ message: e.message });
-  } finally {
-    await queryRunner.release();
   }
 };
 
